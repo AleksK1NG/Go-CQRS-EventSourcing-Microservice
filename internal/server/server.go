@@ -7,12 +7,14 @@ import (
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/interceptors"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/logger"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/middlewares"
+	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/mongodb"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/tracing"
 	"github.com/go-playground/validator"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/labstack/echo/v4"
 	v7 "github.com/olivere/elastic/v7"
 	"github.com/opentracing/opentracing-go"
+	"github.com/pkg/errors"
 	"github.com/segmentio/kafka-go"
 	"go.mongodb.org/mongo-driver/mongo"
 	"net/http"
@@ -42,10 +44,11 @@ type server struct {
 	doneCh        chan struct{}
 	elasticClient *v7.Client
 	echo          *echo.Echo
+	ps            *http.Server
 }
 
 func NewServer(log logger.Logger, cfg config.Config) *server {
-	return &server{log: log, cfg: cfg, v: validator.New(), doneCh: make(chan struct{})}
+	return &server{log: log, cfg: cfg, v: validator.New(), doneCh: make(chan struct{}), echo: echo.New()}
 }
 
 func (s *server) Run() error {
@@ -66,6 +69,50 @@ func (s *server) Run() error {
 	s.im = interceptors.NewInterceptorManager(s.log, s.getGrpcMetricsCb())
 	s.mw = middlewares.NewMiddlewareManager(s.log, s.cfg, s.getHttpMetricsCb())
 
+	// connect postgres
+	if err := s.connectPostgres(ctx); err != nil {
+		return err
+	}
+	defer s.pgxConn.Close()
+
+	// connect mongo
+	mongoDBConn, err := mongodb.NewMongoDBConn(ctx, s.cfg.Mongo)
+	if err != nil {
+		return errors.Wrap(err, "NewMongoDBConn")
+	}
+	s.mongoClient = mongoDBConn
+	defer mongoDBConn.Disconnect(ctx) // nolint: errcheck
+	s.log.Infof("(Mongo connected) SessionsInProgress: %v", mongoDBConn.NumberSessionsInProgress())
+
+	// connect elastic
+	if err := s.initElasticClient(ctx); err != nil {
+		s.log.Errorf("(initElasticClient) err: {%v}", err)
+		return err
+	}
+
+	// run metrics and health check
+	s.runMetrics(cancel)
+	s.runHealthCheck(ctx)
+
+	go func() {
+		if err := s.runHttpServer(); err != nil {
+			s.log.Errorf("(s.runHttpServer) err: {%v}", err)
+			cancel()
+		}
+	}()
+	s.log.Infof("%s is listening on PORT: {%s}", GetMicroserviceName(s.cfg), s.cfg.Http.Port)
+
 	<-ctx.Done()
+	s.waitShootDown(waitShotDownDuration)
+
+	if err := s.shutDownHealthCheckServer(ctx); err != nil {
+		s.log.Warnf("(shutDownHealthCheckServer) err: {%v}", err)
+	}
+
+	if err := s.echo.Shutdown(ctx); err != nil {
+		s.log.Warnf("(Shutdown) err: {%v}", err)
+	}
+	<-s.doneCh
+	s.log.Infof("%s server exited properly", GetMicroserviceName(s.cfg))
 	return nil
 }

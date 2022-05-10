@@ -6,3 +6,4 @@ prometheus
 mongodb_data_container
 grafana
 microservices_pgdata
+es-data01

@@ -10,6 +10,7 @@ const (
 	MongoDbURI     = "MONGO_URI"
 	PostgresqlHost = "POSTGRES_HOST"
 	PostgresqlPort = "POSTGRES_PORT"
+	ElasticUrl     = "ELASTIC_URL"
 
 	ReaderServicePort = "READER_SERVICE"
 
@@ -65,4 +66,11 @@ const (
 	Version     = "(Version)"
 	TimeStamp   = "(TimeStamp)"
 	Metadata    = "(Metadata)"
+
+	MessageSize = "MessageSize"
+
+	BankAccountIndex = "BankAccountId"
+	BankAccountId    = "BankAccountId"
+
+	KafkaHeaders = "{kafkaHeaders}"
 )

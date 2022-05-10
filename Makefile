@@ -12,6 +12,12 @@ dev:
 	docker-compose -f docker-compose.yaml up -d --build
 
 local:
+	@echo Clearing kafka data
+	rm -rf ./kafka_data
+	@echo Clearing zookeeper data
+	rm -rf ./zookeeper
+	@echo Clearing prometheus data
+	rm -rf ./prometheus
 	@echo Starting local docker compose
 	docker-compose -f docker-compose.local.yaml up -d --build
 

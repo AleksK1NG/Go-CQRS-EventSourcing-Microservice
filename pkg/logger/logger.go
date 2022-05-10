@@ -2,7 +2,6 @@ package logger
 
 import (
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/constants"
-	"github.com/opentracing/opentracing-go"
 	"os"
 	"time"
 
@@ -16,21 +15,18 @@ type Config struct {
 	Encoder  string `mapstructure:"encoder"`
 }
 
-func NewLoggerConfig(logLevel string, devMode bool, encoder string) *Config {
-	return &Config{LogLevel: logLevel, DevMode: devMode, Encoder: encoder}
-}
-
 // Logger methods interface
 type Logger interface {
 	InitLogger()
 	Sync() error
+	SetLogLevel(logLevel string)
 	Debug(args ...interface{})
 	Debugf(template string, args ...interface{})
 	Info(args ...interface{})
 	Infof(template string, args ...interface{})
 	Warn(args ...interface{})
 	Warnf(template string, args ...interface{})
-	WarnMsg(msg string, err error)
+	WarnErrMsg(msg string, err error)
 	Error(args ...interface{})
 	Errorf(template string, args ...interface{})
 	Err(msg string, err error)
@@ -39,12 +35,15 @@ type Logger interface {
 	Fatal(args ...interface{})
 	Fatalf(template string, args ...interface{})
 	Printf(template string, args ...interface{})
-	WithName(name string)
+	Named(name string)
 	HttpMiddlewareAccessLogger(method string, uri string, status int, size int64, time time.Duration)
 	GrpcMiddlewareAccessLogger(method string, time time.Duration, metaData map[string][]string, err error)
+	GrpcMiddlewareAccessLoggerErr(method string, time time.Duration, metaData map[string][]string, err error)
 	GrpcClientInterceptorLogger(method string, req interface{}, reply interface{}, time time.Duration, metaData map[string][]string, err error)
-	KafkaProcessMessage(topic string, partition int, size int64, workerID int, offset int64, time time.Time, headers opentracing.TextMapCarrier)
-	KafkaLogCommittedMessage(topic string, partition int, offset int64, headers opentracing.TextMapCarrier)
+	GrpcClientInterceptorLoggerErr(method string, req, reply interface{}, time time.Duration, metaData map[string][]string, err error)
+	KafkaProcessMessage(topic string, partition int, message []byte, workerID int, offset int64, time time.Time)
+	KafkaLogCommittedMessage(topic string, partition int, offset int64)
+	KafkaProcessMessageWithHeaders(topic string, partition int, message []byte, workerID int, offset int64, time time.Time, headers map[string]interface{})
 }
 
 // Application logger
@@ -57,8 +56,8 @@ type appLogger struct {
 }
 
 // NewAppLogger App Logger constructor
-func NewAppLogger(cfg *Config) *appLogger {
-	return &appLogger{level: cfg.LogLevel, devMode: cfg.DevMode, encoding: cfg.Encoder}
+func NewAppLogger(level string, devMode bool, encoding string) *appLogger {
+	return &appLogger{level: level, devMode: devMode, encoding: encoding}
 }
 
 // For mapping config logger to email_service logger levels
@@ -81,6 +80,14 @@ func (l *appLogger) getLoggerLevel() zapcore.Level {
 	return level
 }
 
+func (l *appLogger) setLoggerLevel(logLevel string) zapcore.Level {
+	level, exist := loggerLevelMap[logLevel]
+	if !exist {
+		return zapcore.DebugLevel
+	}
+	return level
+}
+
 // InitLogger Init logger
 func (l *appLogger) InitLogger() {
 	logLevel := l.getLoggerLevel()
@@ -98,20 +105,21 @@ func (l *appLogger) InitLogger() {
 	encoderCfg.NameKey = "[SERVICE]"
 	encoderCfg.TimeKey = "[TIME]"
 	encoderCfg.LevelKey = "[LEVEL]"
-	encoderCfg.FunctionKey = "[CALLER]"
 	encoderCfg.CallerKey = "[LINE]"
 	encoderCfg.MessageKey = "[MESSAGE]"
 	encoderCfg.EncodeTime = zapcore.ISO8601TimeEncoder
 	encoderCfg.EncodeLevel = zapcore.CapitalLevelEncoder
 	encoderCfg.EncodeCaller = zapcore.ShortCallerEncoder
-	encoderCfg.EncodeName = zapcore.FullNameEncoder
 	encoderCfg.EncodeDuration = zapcore.StringDurationEncoder
 
 	if l.encoding == "console" {
 		encoderCfg.EncodeLevel = zapcore.CapitalColorLevelEncoder
+		encoderCfg.EncodeCaller = zapcore.FullCallerEncoder
 		encoderCfg.ConsoleSeparator = " | "
 		encoder = zapcore.NewConsoleEncoder(encoderCfg)
 	} else {
+		encoderCfg.FunctionKey = "[CALLER]"
+		encoderCfg.EncodeName = zapcore.FullNameEncoder
 		encoder = zapcore.NewJSONEncoder(encoderCfg)
 	}
 
@@ -122,10 +130,53 @@ func (l *appLogger) InitLogger() {
 	l.sugarLogger = logger.Sugar()
 }
 
+func (l *appLogger) SetLogLevel(logLevel string) {
+	logLvl := l.setLoggerLevel(logLevel)
+
+	logWriter := zapcore.AddSync(os.Stdout)
+
+	var encoderCfg zapcore.EncoderConfig
+	if l.devMode {
+		encoderCfg = zap.NewDevelopmentEncoderConfig()
+	} else {
+		encoderCfg = zap.NewProductionEncoderConfig()
+	}
+
+	var encoder zapcore.Encoder
+	encoderCfg.NameKey = "[SERVICE]"
+	encoderCfg.TimeKey = "[TIME]"
+	encoderCfg.LevelKey = "[LEVEL]"
+	encoderCfg.CallerKey = "[LINE]"
+	encoderCfg.MessageKey = "[MESSAGE]"
+	encoderCfg.EncodeTime = zapcore.ISO8601TimeEncoder
+	encoderCfg.EncodeLevel = zapcore.CapitalLevelEncoder
+	encoderCfg.EncodeCaller = zapcore.ShortCallerEncoder
+	encoderCfg.EncodeDuration = zapcore.StringDurationEncoder
+
+	if l.encoding == "console" {
+		encoderCfg.EncodeLevel = zapcore.CapitalColorLevelEncoder
+		encoderCfg.EncodeCaller = zapcore.FullCallerEncoder
+		encoderCfg.ConsoleSeparator = "  |  "
+		encoder = zapcore.NewConsoleEncoder(encoderCfg)
+	} else {
+		encoderCfg.FunctionKey = "[CALLER]"
+		encoderCfg.EncodeName = zapcore.FullNameEncoder
+		encoder = zapcore.NewJSONEncoder(encoderCfg)
+	}
+
+	core := zapcore.NewCore(encoder, logWriter, zap.NewAtomicLevelAt(logLvl))
+	logger := zap.New(core, zap.AddCaller(), zap.AddCallerSkip(1))
+
+	l.logger = logger
+	l.sugarLogger = logger.Sugar()
+	l.logger.Info("(SET LOG LEVEL)", zap.String("LEVEL", logLvl.CapitalString()))
+	l.Sync() // nolint: errcheck
+}
+
 // Logger methods
 
-// WithName add logger microservice name
-func (l *appLogger) WithName(name string) {
+// Named add logger microservice name
+func (l *appLogger) Named(name string) {
 	l.logger = l.logger.Named(name)
 	l.sugarLogger = l.sugarLogger.Named(name)
 }
@@ -160,8 +211,8 @@ func (l *appLogger) Warn(args ...interface{}) {
 	l.sugarLogger.Warn(args...)
 }
 
-// WarnMsg log error message with warn level.
-func (l *appLogger) WarnMsg(msg string, err error) {
+// WarnErrMsg log error message with warn level.
+func (l *appLogger) WarnErrMsg(msg string, err error) {
 	l.logger.Warn(msg, zap.String("error", err.Error()))
 }
 
@@ -233,32 +284,26 @@ func (l *appLogger) HttpMiddlewareAccessLogger(method, uri string, status int, s
 }
 
 func (l *appLogger) GrpcMiddlewareAccessLogger(method string, time time.Duration, metaData map[string][]string, err error) {
-	if err != nil {
-		l.logger.Info(
-			constants.GRPC,
-			zap.String(constants.METHOD, method),
-			zap.Duration(constants.TIME, time),
-			zap.Any(constants.METADATA, metaData),
-			zap.String(constants.ERROR, err.Error()),
-		)
-		return
-	}
-	l.logger.Info(constants.GRPC, zap.String(constants.METHOD, method), zap.Duration(constants.TIME, time), zap.Any(constants.METADATA, metaData))
+	l.logger.Info(
+		constants.GRPC,
+		zap.String(constants.METHOD, method),
+		zap.Duration(constants.TIME, time),
+		zap.Any(constants.METADATA, metaData),
+		zap.Any(constants.ERROR, err),
+	)
+}
+
+func (l *appLogger) GrpcMiddlewareAccessLoggerErr(method string, time time.Duration, metaData map[string][]string, err error) {
+	l.logger.Error(
+		constants.GRPC,
+		zap.String(constants.METHOD, method),
+		zap.Duration(constants.TIME, time),
+		zap.Any(constants.METADATA, metaData),
+		zap.Any(constants.ERROR, err),
+	)
 }
 
 func (l *appLogger) GrpcClientInterceptorLogger(method string, req, reply interface{}, time time.Duration, metaData map[string][]string, err error) {
-	if err != nil {
-		l.logger.Info(
-			constants.GRPC,
-			zap.String(constants.METHOD, method),
-			zap.Any(constants.REQUEST, req),
-			zap.Any(constants.REPLY, reply),
-			zap.Duration(constants.TIME, time),
-			zap.Any(constants.METADATA, metaData),
-			zap.String(constants.ERROR, err.Error()),
-		)
-		return
-	}
 	l.logger.Info(
 		constants.GRPC,
 		zap.String(constants.METHOD, method),
@@ -266,28 +311,52 @@ func (l *appLogger) GrpcClientInterceptorLogger(method string, req, reply interf
 		zap.Any(constants.REPLY, reply),
 		zap.Duration(constants.TIME, time),
 		zap.Any(constants.METADATA, metaData),
+		zap.Any(constants.ERROR, err),
 	)
 }
 
-func (l *appLogger) KafkaProcessMessage(topic string, partition int, size int64, workerID int, offset int64, time time.Time, headers opentracing.TextMapCarrier) {
+func (l *appLogger) GrpcClientInterceptorLoggerErr(method string, req, reply interface{}, time time.Duration, metaData map[string][]string, err error) {
+	l.logger.Error(
+		constants.GRPC,
+		zap.String(constants.METHOD, method),
+		zap.Any(constants.REQUEST, req),
+		zap.Any(constants.REPLY, reply),
+		zap.Duration(constants.TIME, time),
+		zap.Any(constants.METADATA, metaData),
+		zap.Any(constants.ERROR, err),
+	)
+}
+
+func (l *appLogger) KafkaProcessMessage(topic string, partition int, message []byte, workerID int, offset int64, time time.Time) {
 	l.logger.Debug(
 		"(Processing Kafka message)",
 		zap.String(constants.Topic, topic),
 		zap.Int(constants.Partition, partition),
-		zap.Int64(constants.Size, size),
+		zap.Int(constants.MessageSize, len(message)),
 		zap.Int(constants.WorkerID, workerID),
 		zap.Int64(constants.Offset, offset),
 		zap.Time(constants.Time, time),
-		zap.Any(constants.Headers, headers),
 	)
 }
 
-func (l *appLogger) KafkaLogCommittedMessage(topic string, partition int, offset int64, headers opentracing.TextMapCarrier) {
-	l.logger.Info(
+func (l *appLogger) KafkaLogCommittedMessage(topic string, partition int, offset int64) {
+	l.logger.Debug(
 		"(Committed Kafka message)",
 		zap.String(constants.Topic, topic),
 		zap.Int(constants.Partition, partition),
 		zap.Int64(constants.Offset, offset),
-		zap.Any(constants.Headers, headers),
+	)
+}
+
+func (l *appLogger) KafkaProcessMessageWithHeaders(topic string, partition int, message []byte, workerID int, offset int64, time time.Time, headers map[string]interface{}) {
+	l.logger.Debug(
+		"(Processing Kafka message)",
+		zap.String(constants.Topic, topic),
+		zap.Int(constants.Partition, partition),
+		zap.Int(constants.MessageSize, len(message)),
+		zap.Int(constants.WorkerID, workerID),
+		zap.Int64(constants.Offset, offset),
+		zap.Time(constants.Time, time),
+		zap.Any(constants.KafkaHeaders, headers),
 	)
 }

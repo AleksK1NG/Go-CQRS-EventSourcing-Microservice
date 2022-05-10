@@ -4,7 +4,9 @@ import (
 	"flag"
 	"fmt"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/constants"
+	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/elasticsearch"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/es"
+	kafkaClient "github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/kafka"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/logger"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/mongodb"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/postgres"
@@ -23,23 +25,23 @@ func init() {
 }
 
 type Config struct {
-	ServiceName         string          `mapstructure:"serviceName"`
-	Logger              logger.Config   `mapstructure:"logger"`
-	GRPC                GRPC            `mapstructure:"grpc"`
-	Postgresql          postgres.Config `mapstructure:"postgres"`
-	Timeouts            Timeouts        `mapstructure:"timeouts" validate:"required"`
-	EventSourcingConfig es.Config       `mapstructure:"eventSourcingConfig" validate:"required"`
-	//Kafka                *kafkaClient.Config     `mapstructure:"kafka" validate:"required"`
-	//KafkaTopics          KafkaTopics             `mapstructure:"kafkaTopics" validate:"required"`
-	Mongo            *mongodb.Config  `mapstructure:"mongo" validate:"required"`
-	MongoCollections MongoCollections `mapstructure:"mongoCollections" validate:"required"`
-	//KafkaPublisherConfig es.KafkaEventsBusConfig `mapstructure:"kafkaPublisherConfig" validate:"required"`
-	Jaeger *tracing.Config `mapstructure:"jaeger"`
-	//Elastic              elasticsearch.Config    `mapstructure:"elastic"`
-	//ElasticIndexes       ElasticIndexes          `mapstructure:"elasticIndexes"`
-	//Projections          Projections             `mapstructure:"projections"`
-	Http   Http          `mapstructure:"http"`
-	Probes probes.Config `mapstructure:"probes"`
+	ServiceName          string                  `mapstructure:"serviceName"`
+	Logger               logger.Config           `mapstructure:"logger"`
+	GRPC                 GRPC                    `mapstructure:"grpc"`
+	Postgresql           postgres.Config         `mapstructure:"postgres"`
+	Timeouts             Timeouts                `mapstructure:"timeouts" validate:"required"`
+	EventSourcingConfig  es.Config               `mapstructure:"eventSourcingConfig" validate:"required"`
+	Kafka                *kafkaClient.Config     `mapstructure:"kafka" validate:"required"`
+	KafkaTopics          KafkaTopics             `mapstructure:"kafkaTopics" validate:"required"`
+	Mongo                *mongodb.Config         `mapstructure:"mongo" validate:"required"`
+	MongoCollections     MongoCollections        `mapstructure:"mongoCollections" validate:"required"`
+	KafkaPublisherConfig es.KafkaEventsBusConfig `mapstructure:"kafkaPublisherConfig" validate:"required"`
+	Jaeger               *tracing.Config         `mapstructure:"jaeger"`
+	Elastic              elasticsearch.Config    `mapstructure:"elastic"`
+	ElasticIndexes       ElasticIndexes          `mapstructure:"elasticIndexes"`
+	Projections          Projections             `mapstructure:"projections"`
+	Http                 Http                    `mapstructure:"http"`
+	Probes               probes.Config           `mapstructure:"probes"`
 }
 
 type GRPC struct {
@@ -52,17 +54,17 @@ type Timeouts struct {
 	PostgresInitRetryCount   uint `mapstructure:"postgresInitRetryCount" validate:"required"`
 }
 
-//type KafkaTopics struct {
-//	EventCreated            kafkaClient.TopicConfig `mapstructure:"eventCreated" validate:"required"`
-//	OrderAggregateTypeTopic kafkaClient.TopicConfig `mapstructure:"orderAggregateTypeTopic" validate:"required"`
-//}
+type KafkaTopics struct {
+	EventCreated                  kafkaClient.TopicConfig `mapstructure:"eventCreated" validate:"required"`
+	BankAccountAggregateTypeTopic kafkaClient.TopicConfig `mapstructure:"orderAggregateTypeTopic" validate:"required"`
+}
 
 type MongoCollections struct {
-	Orders string `mapstructure:"orders" validate:"required"`
+	BankAccounts string `mapstructure:"bankAccounts" validate:"required"`
 }
 
 type ElasticIndexes struct {
-	Orders string `mapstructure:"orders" validate:"required"`
+	BankAccounts string `mapstructure:"bankAccounts" validate:"required"`
 }
 
 type Projections struct {
@@ -120,10 +122,10 @@ func InitConfig() (*Config, error) {
 		cfg.Jaeger.HostPort = jaegerAddr
 	}
 
-	//elasticUrl := os.Getenv(constants.ElasticUrl)
-	//if elasticUrl != "" {
-	//	cfg.Elastic.URL = elasticUrl
-	//}
+	elasticUrl := os.Getenv(constants.ElasticUrl)
+	if elasticUrl != "" {
+		cfg.Elastic.URL = elasticUrl
+	}
 
 	return cfg, nil
 }
