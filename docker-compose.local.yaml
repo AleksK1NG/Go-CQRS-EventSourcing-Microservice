@@ -2,7 +2,7 @@ version: "3.9"
 
 services:
   es_postgesql:
-    image: postgres:14
+    image: postgres:14.2
     container_name: es_postgesql
     expose:
       - "5432"
@@ -30,7 +30,7 @@ services:
     networks: [ "microservices" ]
 
   kafka:
-    image: 'bitnami/kafka:3.0.1'
+    image: 'bitnami/kafka:3.1.0'
     ports:
       - "9092:9092"
       - "9093:9093"
@@ -66,7 +66,7 @@ services:
   jaeger:
     container_name: jaeger_container
     restart: always
-    image: jaegertracing/all-in-one:1.21
+    image: jaegertracing/all-in-one:1.33.0
     environment:
       - COLLECTOR_ZIPKIN_HTTP_PORT=9411
     ports:
@@ -81,7 +81,7 @@ services:
     networks: [ "microservices" ]
 
   node01:
-    image: docker.elastic.co/elasticsearch/elasticsearch:7.11.1
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.2.0
     container_name: node01
     restart: always
     environment:
@@ -100,7 +100,7 @@ services:
     networks: [ "microservices" ]
 
   kibana:
-    image: docker.elastic.co/kibana/kibana:7.11.1
+    image: docker.elastic.co/kibana/kibana:8.2.0
     restart: always
     environment:
       ELASTICSEARCH_HOSTS: http://node01:9200

@@ -1,0 +1,78 @@
+syntax = "proto3";
+
+package orderService;
+
+option go_package = "./;bankAccountService";
+
+import "google/protobuf/timestamp.proto";
+
+message Payment {
+  string ID = 1;
+  google.protobuf.Timestamp  Timestamp = 2;
+}
+
+message BankAccount {
+  string id = 1;
+  string email = 2;
+  string firstName = 3;
+  string lastName = 4;
+  string address = 5;
+  string status = 6;
+  double balance = 7;
+  google.protobuf.Timestamp CreatedAt = 8;
+  google.protobuf.Timestamp UpdatedAt = 9;
+}
+
+message CreateBankAccountRequest {
+  string email = 1;
+  string firstName = 2;
+  string lastName = 3;
+  string address = 4;
+  string status = 5;
+}
+
+message CreateBankAccountResponse {
+  string id = 1;
+}
+
+message DepositBalanceRequest {
+  string id = 1;
+  string paymentId = 2;
+  double amount = 3;
+}
+
+message DepositBalanceResponse {}
+
+message GetByIdRequest {
+  string id = 1;
+  bool isOwner = 2;
+}
+
+message GetByIdResponse {
+  BankAccount bankAccount = 1;
+}
+
+message ChangeEmailRequest {
+  string id = 1;
+  string email = 2;
+}
+
+message ChangeEmailResponse {}
+
+message GetBankAccountByStatusRequest {
+  string status = 1;
+  int64 page = 2;
+  int64 size = 3;
+}
+
+message GetBankAccountByStatusResponse {
+  repeated BankAccount bankAccounts = 1;
+}
+
+service bankAccountService {
+  rpc CreateBankAccount (CreateBankAccountRequest) returns (CreateBankAccountResponse) {};
+  rpc DepositBalance (DepositBalanceRequest) returns (DepositBalanceResponse) {};
+  rpc ChangeEmail (ChangeEmailRequest) returns (ChangeEmailResponse) {};
+  rpc GetById (GetByIdRequest) returns (GetByIdResponse) {};
+  rpc GetBankAccountByStatus (GetBankAccountByStatusRequest) returns (GetBankAccountByStatusResponse) {};
+}
