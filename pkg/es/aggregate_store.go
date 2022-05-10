@@ -11,7 +11,7 @@ import (
 )
 
 // Load es.Aggregate events using snapshots with given frequency
-func (p *pgEventStore) Load(ctx context.Context, aggregate Aggregate) error {
+func (p *pgEventStore[T]) Load(ctx context.Context, aggregate T) (T, error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, "pgEventStore.Load")
 	defer span.Finish()
 	span.LogFields(log.String("aggregate", aggregate.String()))
@@ -19,38 +19,38 @@ func (p *pgEventStore) Load(ctx context.Context, aggregate Aggregate) error {
 	snapshot, err := p.GetSnapshot(ctx, aggregate.GetID())
 	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 		tracing.TraceErr(span, err)
-		return err
+		return aggregate, err
 	}
 
 	if snapshot != nil {
 		if err := json.Unmarshal(snapshot.State, aggregate); err != nil {
 			tracing.TraceErr(span, err)
 			p.log.Errorf("(Load) json.Unmarshal err: %v", err)
-			return errors.Wrap(err, "json.Unmarshal")
+			return aggregate, errors.Wrap(err, "json.Unmarshal")
 		}
 
 		err := p.loadAggregateEventsByVersion(ctx, aggregate)
 		if err != nil {
-			return err
+			return aggregate, err
 		}
 
 		p.log.Debugf("(Load Aggregate): aggregate: {%s}", aggregate.String())
 		span.LogFields(log.String("aggregate with events", aggregate.String()))
-		return nil
+		return aggregate, nil
 	}
 
 	err = p.loadEvents(ctx, aggregate)
 	if err != nil {
-		return err
+		return aggregate, err
 	}
 
 	p.log.Debugf("(Load Aggregate): aggregate: {%s}", aggregate.String())
 	span.LogFields(log.String("aggregate with events", aggregate.String()))
-	return nil
+	return aggregate, nil
 }
 
 // Save es.Aggregate events using snapshots with given frequency
-func (p *pgEventStore) Save(ctx context.Context, aggregate Aggregate) (err error) {
+func (p *pgEventStore[T]) Save(ctx context.Context, aggregate T) (err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, "pgEventStore.Save")
 	defer span.Finish()
 	span.LogFields(log.String("aggregate", aggregate.String()))

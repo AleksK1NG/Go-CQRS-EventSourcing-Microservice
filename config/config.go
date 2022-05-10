@@ -4,8 +4,12 @@ import (
 	"flag"
 	"fmt"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/constants"
+	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/es"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/logger"
+	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/mongodb"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/postgres"
+	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/probes"
+	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/tracing"
 	"github.com/pkg/errors"
 	"os"
 
@@ -19,22 +23,23 @@ func init() {
 }
 
 type Config struct {
-	ServiceName string          `mapstructure:"serviceName"`
-	Logger      logger.Config   `mapstructure:"logger"`
-	GRPC        GRPC            `mapstructure:"grpc"`
-	Postgresql  postgres.Config `mapstructure:"postgres"`
-	Timeouts    Timeouts        `mapstructure:"timeouts" validate:"required"`
-	//EventSourcingConfig  es.Config               `mapstructure:"eventSourcingConfig" validate:"required"`
+	ServiceName         string          `mapstructure:"serviceName"`
+	Logger              logger.Config   `mapstructure:"logger"`
+	GRPC                GRPC            `mapstructure:"grpc"`
+	Postgresql          postgres.Config `mapstructure:"postgres"`
+	Timeouts            Timeouts        `mapstructure:"timeouts" validate:"required"`
+	EventSourcingConfig es.Config       `mapstructure:"eventSourcingConfig" validate:"required"`
 	//Kafka                *kafkaClient.Config     `mapstructure:"kafka" validate:"required"`
 	//KafkaTopics          KafkaTopics             `mapstructure:"kafkaTopics" validate:"required"`
-	//Mongo                *mongodb.Config         `mapstructure:"mongo" validate:"required"`
-	//MongoCollections     MongoCollections        `mapstructure:"mongoCollections" validate:"required"`
+	Mongo            *mongodb.Config  `mapstructure:"mongo" validate:"required"`
+	MongoCollections MongoCollections `mapstructure:"mongoCollections" validate:"required"`
 	//KafkaPublisherConfig es.KafkaEventsBusConfig `mapstructure:"kafkaPublisherConfig" validate:"required"`
-	//Jaeger               *tracing.Config         `mapstructure:"jaeger"`
+	Jaeger *tracing.Config `mapstructure:"jaeger"`
 	//Elastic              elasticsearch.Config    `mapstructure:"elastic"`
 	//ElasticIndexes       ElasticIndexes          `mapstructure:"elasticIndexes"`
 	//Projections          Projections             `mapstructure:"projections"`
-	Http Http `mapstructure:"http"`
+	Http   Http          `mapstructure:"http"`
+	Probes probes.Config `mapstructure:"probes"`
 }
 
 type GRPC struct {
@@ -105,22 +110,19 @@ func InitConfig() (*Config, error) {
 	if grpcPort != "" {
 		cfg.GRPC.Port = grpcPort
 	}
+	mongoURI := os.Getenv(constants.MongoDbURI)
+	if mongoURI != "" {
+		//cfg.Mongo.URI = "mongodb://host.docker.internal:27017"
+		cfg.Mongo.URI = mongoURI
+	}
+	jaegerAddr := os.Getenv(constants.JaegerHostPort)
+	if jaegerAddr != "" {
+		cfg.Jaeger.HostPort = jaegerAddr
+	}
 
-	//postgresHost := os.Getenv(constants.PostgresqlHost)
-	//if postgresHost != "" {
-	//	cfg.Postgresql.Host = postgresHost
-	//}
-	//postgresPort := os.Getenv(constants.PostgresqlPort)
-	//if postgresPort != "" {
-	//	cfg.Postgresql.Port = postgresPort
-	//}
-	//jaegerAddr := os.Getenv(constants.JaegerHostPort)
-	//if jaegerAddr != "" {
-	//	cfg.Jaeger.HostPort = jaegerAddr
-	//}
-	//kafkaBrokers := os.Getenv(constants.KafkaBrokers)
-	//if kafkaBrokers != "" {
-	//	cfg.Kafka.Brokers = []string{kafkaBrokers}
+	//elasticUrl := os.Getenv(constants.ElasticUrl)
+	//if elasticUrl != "" {
+	//	cfg.Elastic.URL = elasticUrl
 	//}
 
 	return cfg, nil

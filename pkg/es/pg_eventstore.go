@@ -15,19 +15,19 @@ const (
 	eventsCapacity = 10
 )
 
-type pgEventStore struct {
+type pgEventStore[T Aggregate] struct {
 	log      logger.Logger
 	cfg      Config
 	db       *pgxpool.Pool
 	eventBus EventsBus
 }
 
-func NewPgEventStore(log logger.Logger, cfg Config, db *pgxpool.Pool, eventBus EventsBus) *pgEventStore {
-	return &pgEventStore{log: log, cfg: cfg, db: db, eventBus: eventBus}
+func NewPgEventStore[T Aggregate](log logger.Logger, cfg Config, db *pgxpool.Pool, eventBus EventsBus) *pgEventStore[T] {
+	return &pgEventStore[T]{log: log, cfg: cfg, db: db, eventBus: eventBus}
 }
 
 // SaveEvents save aggregate uncommitted events as one batch and process with event bus using transaction
-func (p *pgEventStore) SaveEvents(ctx context.Context, events []Event) error {
+func (p *pgEventStore[T]) SaveEvents(ctx context.Context, events []Event) error {
 	span, ctx := opentracing.StartSpanFromContext(ctx, "pgEventStore.SaveEvents")
 	defer span.Finish()
 
@@ -97,7 +97,7 @@ func (p *pgEventStore) SaveEvents(ctx context.Context, events []Event) error {
 }
 
 // LoadEvents load aggregate events by id
-func (p *pgEventStore) LoadEvents(ctx context.Context, aggregateID string) ([]Event, error) {
+func (p *pgEventStore[T]) LoadEvents(ctx context.Context, aggregateID string) ([]Event, error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, "pgEventStore.LoadEvents")
 	defer span.Finish()
 
@@ -141,7 +141,7 @@ func (p *pgEventStore) LoadEvents(ctx context.Context, aggregateID string) ([]Ev
 }
 
 // LoadEvents load aggregate events by id
-func (p *pgEventStore) loadEvents(ctx context.Context, aggregate Aggregate) error {
+func (p *pgEventStore[T]) loadEvents(ctx context.Context, aggregate Aggregate) error {
 	span, ctx := opentracing.StartSpanFromContext(ctx, "pgEventStore.loadEvents")
 	defer span.Finish()
 	span.LogFields(log.String("aggregate", aggregate.String()))
@@ -189,7 +189,7 @@ func (p *pgEventStore) loadEvents(ctx context.Context, aggregate Aggregate) erro
 }
 
 // Exists check for exists aggregate by id
-func (p *pgEventStore) Exists(ctx context.Context, aggregateID string) (bool, error) {
+func (p *pgEventStore[T]) Exists(ctx context.Context, aggregateID string) (bool, error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, "pgEventStore.Exists")
 	defer span.Finish()
 
@@ -207,7 +207,7 @@ func (p *pgEventStore) Exists(ctx context.Context, aggregateID string) (bool, er
 	return true, nil
 }
 
-func (p *pgEventStore) loadEventsByVersion(ctx context.Context, aggregateID string, versionFrom uint64) ([]Event, error) {
+func (p *pgEventStore[T]) loadEventsByVersion(ctx context.Context, aggregateID string, versionFrom uint64) ([]Event, error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, "pgEventStore.loadEventsByVersion")
 	defer span.Finish()
 	span.LogFields(log.String("aggregateID", aggregateID), log.Uint64("versionFrom", versionFrom))
@@ -250,7 +250,7 @@ func (p *pgEventStore) loadEventsByVersion(ctx context.Context, aggregateID stri
 	return events, nil
 }
 
-func (p *pgEventStore) loadAggregateEventsByVersion(ctx context.Context, aggregate Aggregate) error {
+func (p *pgEventStore[T]) loadAggregateEventsByVersion(ctx context.Context, aggregate Aggregate) error {
 	span, ctx := opentracing.StartSpanFromContext(ctx, "pgEventStore.loadAggregateEventsByVersion")
 	defer span.Finish()
 	span.LogFields(log.String("aggregate", aggregate.String()))
@@ -299,7 +299,7 @@ func (p *pgEventStore) loadAggregateEventsByVersion(ctx context.Context, aggrega
 	return nil
 }
 
-func (p *pgEventStore) loadEventsByVersionTx(ctx context.Context, tx pgx.Tx, aggregateID string, versionFrom int64) ([]Event, error) {
+func (p *pgEventStore[T]) loadEventsByVersionTx(ctx context.Context, tx pgx.Tx, aggregateID string, versionFrom int64) ([]Event, error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, "pgEventStore.loadEventsByVersionTx")
 	defer span.Finish()
 
@@ -342,7 +342,7 @@ func (p *pgEventStore) loadEventsByVersionTx(ctx context.Context, tx pgx.Tx, agg
 	return events, nil
 }
 
-func (p *pgEventStore) handleConcurrency(ctx context.Context, tx pgx.Tx, events []Event) error {
+func (p *pgEventStore[T]) handleConcurrency(ctx context.Context, tx pgx.Tx, events []Event) error {
 	span, ctx := opentracing.StartSpanFromContext(ctx, "pgEventStore.handleConcurrency")
 	defer span.Finish()
 
@@ -357,7 +357,7 @@ func (p *pgEventStore) handleConcurrency(ctx context.Context, tx pgx.Tx, events 
 	return nil
 }
 
-func (p *pgEventStore) saveEventsTx(ctx context.Context, tx pgx.Tx, events []Event) error {
+func (p *pgEventStore[T]) saveEventsTx(ctx context.Context, tx pgx.Tx, events []Event) error {
 	span, ctx := opentracing.StartSpanFromContext(ctx, "pgEventStore.saveEventsTx")
 	defer span.Finish()
 
@@ -409,7 +409,7 @@ func (p *pgEventStore) saveEventsTx(ctx context.Context, tx pgx.Tx, events []Eve
 	return nil
 }
 
-func (p *pgEventStore) saveSnapshotTx(ctx context.Context, tx pgx.Tx, aggregate Aggregate) error {
+func (p *pgEventStore[T]) saveSnapshotTx(ctx context.Context, tx pgx.Tx, aggregate Aggregate) error {
 	span, ctx := opentracing.StartSpanFromContext(ctx, "pgEventStore.saveSnapshotTx")
 	defer span.Finish()
 
@@ -431,7 +431,7 @@ func (p *pgEventStore) saveSnapshotTx(ctx context.Context, tx pgx.Tx, aggregate 
 	return nil
 }
 
-func (p *pgEventStore) processEvents(ctx context.Context, events []Event) error {
+func (p *pgEventStore[T]) processEvents(ctx context.Context, events []Event) error {
 	span, ctx := opentracing.StartSpanFromContext(ctx, "pgEventStore.processEvents")
 	defer span.Finish()
 

@@ -9,7 +9,7 @@ import (
 )
 
 // SaveSnapshot save es.Aggregate snapshot
-func (p *pgEventStore) SaveSnapshot(ctx context.Context, aggregate Aggregate) error {
+func (p *pgEventStore[T]) SaveSnapshot(ctx context.Context, aggregate Aggregate) error {
 	span, ctx := opentracing.StartSpanFromContext(ctx, "pgEventStore.SaveSnapshot")
 	defer span.Finish()
 	span.LogFields(log.String("aggregate", aggregate.String()))
@@ -32,7 +32,7 @@ func (p *pgEventStore) SaveSnapshot(ctx context.Context, aggregate Aggregate) er
 }
 
 // GetSnapshot load es.Aggregate snapshot
-func (p *pgEventStore) GetSnapshot(ctx context.Context, id string) (*Snapshot, error) {
+func (p *pgEventStore[T]) GetSnapshot(ctx context.Context, id string) (*Snapshot, error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, "pgEventStore.GetSnapshot")
 	defer span.Finish()
 	span.LogFields(log.String("AggregateID", id))
