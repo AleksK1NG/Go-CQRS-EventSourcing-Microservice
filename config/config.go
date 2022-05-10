@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/constants"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/logger"
+	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/postgres"
 	"github.com/pkg/errors"
 	"os"
 
@@ -18,11 +19,11 @@ func init() {
 }
 
 type Config struct {
-	ServiceName string        `mapstructure:"serviceName"`
-	Logger      logger.Config `mapstructure:"logger"`
-	GRPC        GRPC          `mapstructure:"grpc"`
-	//Postgresql           *postgres.Config        `mapstructure:"postgres"`
-	//Timeouts             Timeouts                `mapstructure:"timeouts" validate:"required"`
+	ServiceName string          `mapstructure:"serviceName"`
+	Logger      logger.Config   `mapstructure:"logger"`
+	GRPC        GRPC            `mapstructure:"grpc"`
+	Postgresql  postgres.Config `mapstructure:"postgres"`
+	Timeouts    Timeouts        `mapstructure:"timeouts" validate:"required"`
 	//EventSourcingConfig  es.Config               `mapstructure:"eventSourcingConfig" validate:"required"`
 	//Kafka                *kafkaClient.Config     `mapstructure:"kafka" validate:"required"`
 	//KafkaTopics          KafkaTopics             `mapstructure:"kafkaTopics" validate:"required"`

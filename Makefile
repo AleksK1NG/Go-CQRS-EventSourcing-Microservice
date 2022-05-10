@@ -92,3 +92,23 @@ swagger:
 #docker run --name esdb-node -it -p 2113:2113 -p 1113:1113 \
 #    ghcr.io/eventstore/eventstore:20.6.1-alpha.0.69-arm64v8 --insecure --run-projections=All \
 #    --enable-external-tcp --enable-atom-pub-over-http
+
+# ==============================================================================
+# Go migrate eduterm-pgql https://github.com/golang-migrate/migrate
+
+DB_NAME = bank_accounts
+DB_HOST = localhost
+DB_PORT = 5432
+SSL_MODE = disable
+
+force_db:
+	migrate -database postgres://postgres:postgres@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?sslmode=$(SSL_MODE) -path migrations force 1
+
+version_db:
+	migrate -database postgres://postgres:postgres@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?sslmode=$(SSL_MODE) -path migrations version
+
+migrate_up:
+	migrate -database postgres://postgres:postgres@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?sslmode=$(SSL_MODE) -path migrations up 1
+
+migrate_down:
+	migrate -database postgres://postgres:postgres@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?sslmode=$(SSL_MODE) -path migrations down 1
