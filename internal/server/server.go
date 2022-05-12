@@ -86,7 +86,7 @@ func (s *server) Run() error {
 
 	// connect elastic
 	if err := s.initElasticClient(ctx); err != nil {
-		s.log.Errorf("(initElasticClient) err: {%v}", err)
+		s.log.Errorf("(initElasticClient) err: %v", err)
 		return err
 	}
 
@@ -96,22 +96,23 @@ func (s *server) Run() error {
 
 	go func() {
 		if err := s.runHttpServer(); err != nil {
-			s.log.Errorf("(s.runHttpServer) err: {%v}", err)
+			s.log.Errorf("(s.runHttpServer) err: %v", err)
 			cancel()
 		}
 	}()
-	s.log.Infof("%s is listening on PORT: {%s}", GetMicroserviceName(s.cfg), s.cfg.Http.Port)
+	s.log.Infof("%s is listening on PORT: %s", GetMicroserviceName(s.cfg), s.cfg.Http.Port)
 
 	<-ctx.Done()
 	s.waitShootDown(waitShotDownDuration)
 
 	if err := s.shutDownHealthCheckServer(ctx); err != nil {
-		s.log.Warnf("(shutDownHealthCheckServer) err: {%v}", err)
+		s.log.Warnf("(shutDownHealthCheckServer) err: %v", err)
 	}
 
 	if err := s.echo.Shutdown(ctx); err != nil {
-		s.log.Warnf("(Shutdown) err: {%v}", err)
+		s.log.Warnf("(Shutdown) err: %v", err)
 	}
+
 	<-s.doneCh
 	s.log.Infof("%s server exited properly", GetMicroserviceName(s.cfg))
 	return nil

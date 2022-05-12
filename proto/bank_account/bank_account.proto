@@ -7,8 +7,8 @@ option go_package = "./;bankAccountService";
 import "google/protobuf/timestamp.proto";
 
 message Payment {
-  string ID = 1;
-  google.protobuf.Timestamp  Timestamp = 2;
+  string id = 1;
+  google.protobuf.Timestamp timestamp = 2;
 }
 
 message BankAccount {
@@ -19,8 +19,8 @@ message BankAccount {
   string address = 5;
   string status = 6;
   double balance = 7;
-  google.protobuf.Timestamp CreatedAt = 8;
-  google.protobuf.Timestamp UpdatedAt = 9;
+  google.protobuf.Timestamp createdAt = 8;
+  google.protobuf.Timestamp updatedAt = 9;
 }
 
 message CreateBankAccountRequest {

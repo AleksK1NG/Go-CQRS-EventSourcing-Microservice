@@ -21,7 +21,7 @@ import (
 var configPath string
 
 func init() {
-	flag.StringVar(&configPath, "config", "", "Writer microservice microservice config path")
+	flag.StringVar(&configPath, "config", "", "BankAccount microservice config path")
 }
 
 type Config struct {

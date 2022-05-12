@@ -36,6 +36,24 @@ func NewBaseEvent(aggregate Aggregate, eventType EventType) Event {
 	}
 }
 
+func NewEvent(aggregate Aggregate, eventType EventType, data any) (Event, error) {
+
+	event := Event{
+		EventID:       uuid.NewV4().String(),
+		AggregateType: aggregate.GetType(),
+		AggregateID:   aggregate.GetID(),
+		Version:       aggregate.GetVersion(),
+		EventType:     eventType,
+		Timestamp:     time.Now().UTC(),
+	}
+
+	if err := event.SetJsonData(data); err != nil {
+		return Event{}, err
+	}
+
+	return Event{}, nil
+}
+
 // GetEventID get EventID of the Event.
 func (e *Event) GetEventID() string {
 	return e.EventID
