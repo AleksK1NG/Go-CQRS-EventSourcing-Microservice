@@ -1,8 +1,8 @@
 package es
 
 import (
-	"encoding/json"
 	"fmt"
+	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/es/serializer"
 	"github.com/pkg/errors"
 )
 
@@ -26,9 +26,9 @@ func (s *Snapshot) String() string {
 // NewSnapshotFromAggregate create new Snapshot from the Aggregate state.
 func NewSnapshotFromAggregate(aggregate Aggregate) (*Snapshot, error) {
 
-	aggregateBytes, err := json.Marshal(aggregate)
+	aggregateBytes, err := serializer.Marshal(aggregate)
 	if err != nil {
-		return nil, errors.Wrap(err, "json.Marshal")
+		return nil, errors.Wrap(err, "serializer.Marshal")
 	}
 
 	return &Snapshot{

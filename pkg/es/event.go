@@ -1,8 +1,8 @@
 package es
 
 import (
-	"encoding/json"
 	"fmt"
+	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/es/serializer"
 	uuid "github.com/satori/go.uuid"
 	"time"
 )
@@ -77,12 +77,12 @@ func (e *Event) SetData(data []byte) *Event {
 
 // GetJsonData json unmarshal data attached to the Event.
 func (e *Event) GetJsonData(data interface{}) error {
-	return json.Unmarshal(e.GetData(), data)
+	return serializer.Unmarshal(e.GetData(), data)
 }
 
 // SetJsonData serialize to json and set data attached to the Event.
 func (e *Event) SetJsonData(data interface{}) error {
-	dataBytes, err := json.Marshal(data)
+	dataBytes, err := serializer.Marshal(data)
 	if err != nil {
 		return err
 	}
@@ -129,7 +129,7 @@ func (e *Event) GetMetadata() []byte {
 // SetMetadata add app-specific metadata serialized as json for the Event.
 func (e *Event) SetMetadata(metaData interface{}) error {
 
-	metaDataBytes, err := json.Marshal(metaData)
+	metaDataBytes, err := serializer.Marshal(metaData)
 	if err != nil {
 		return err
 	}
@@ -140,7 +140,7 @@ func (e *Event) SetMetadata(metaData interface{}) error {
 
 // GetJsonMetadata unmarshal app-specific metadata serialized as json for the Event.
 func (e *Event) GetJsonMetadata(metaData interface{}) error {
-	return json.Unmarshal(e.GetMetadata(), metaData)
+	return serializer.Unmarshal(e.GetMetadata(), metaData)
 }
 
 // GetString A string representation of the Event.

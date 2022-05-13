@@ -2,8 +2,8 @@ package es
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
+	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/es/serializer"
 	kafkaClient "github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/kafka"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/tracing"
 	"github.com/opentracing/opentracing-go"
@@ -36,10 +36,10 @@ func (e *kafkaEventsBus) ProcessEvents(ctx context.Context, events []Event) erro
 	span, ctx := opentracing.StartSpanFromContext(ctx, "kafkaEventsBus.ProcessEvents")
 	defer span.Finish()
 
-	eventsBytes, err := json.Marshal(events)
+	eventsBytes, err := serializer.Marshal(events)
 	if err != nil {
 		tracing.TraceErr(span, err)
-		return errors.Wrap(err, "json.Marshal")
+		return errors.Wrap(err, "serializer.Marshal")
 	}
 
 	return e.producer.PublishMessage(ctx, kafka.Message{

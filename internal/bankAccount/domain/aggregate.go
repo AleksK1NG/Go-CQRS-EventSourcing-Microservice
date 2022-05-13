@@ -87,6 +87,8 @@ func (a *BankAccountAggregate) CreateNewBankAccount(ctx context.Context, email, 
 		return err
 	}
 
+	// TODO: set metadata
+
 	return a.Apply(event)
 }
 
