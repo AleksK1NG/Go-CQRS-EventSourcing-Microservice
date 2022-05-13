@@ -1,6 +1,10 @@
 package serializer
 
-import "encoding/json"
+import (
+	jsoniter "github.com/json-iterator/go"
+)
+
+var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 func Marshal(v any) ([]byte, error) {
 	return json.Marshal(v)

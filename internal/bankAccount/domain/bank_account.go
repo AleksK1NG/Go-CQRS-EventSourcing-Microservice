@@ -13,3 +13,11 @@ type BankAccount struct {
 func NewBankAccount() *BankAccount {
 	return &BankAccount{}
 }
+
+func (b *BankAccount) DepositBalance(amount float64) {
+	b.Balance += amount
+}
+
+func (b *BankAccount) WithdrawBalance(amount float64) {
+	b.Balance -= amount
+}

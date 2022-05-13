@@ -141,3 +141,9 @@ func TraceErr(span opentracing.Span, err error) {
 	span.SetTag("error", true)
 	span.LogKV("error_code", err.Error())
 }
+
+func TraceWithErr(span opentracing.Span, err error) error {
+	span.SetTag("error", true)
+	span.LogKV("error_code", err.Error())
+	return err
+}

@@ -7,6 +7,7 @@ require (
 	github.com/go-playground/validator v9.31.0+incompatible
 	github.com/heptiolabs/healthcheck v0.0.0-20211123025425-613501dd5deb
 	github.com/jackc/pgx/v4 v4.16.1
+	github.com/json-iterator/go v1.1.12
 	github.com/labstack/echo/v4 v4.7.2
 	github.com/olivere/elastic/v7 v7.0.32
 	github.com/opentracing/opentracing-go v1.2.0
@@ -53,6 +54,8 @@ require (
 	github.com/mattn/go-isatty v0.0.14 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.1 // indirect
 	github.com/mitchellh/mapstructure v1.4.3 // indirect
+	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
+	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
 	github.com/pelletier/go-toml v1.9.4 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.0-beta.8 // indirect

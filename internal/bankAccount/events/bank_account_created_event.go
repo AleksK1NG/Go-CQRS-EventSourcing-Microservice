@@ -15,7 +15,7 @@ type BankAccountCreatedEventV1 struct {
 	Status    string  `json:"status"`
 }
 
-func NewBankAccountCreatedEventV1(aggregate es.Aggregate, email, address, firstName, lastName string, balance float64, status string) (es.Event, error) {
+func NewBankAccountCreatedEventV1(aggregate es.Aggregate, email, address, firstName, lastName, status string, balance float64) (es.Event, error) {
 	bankAccountCreatedEvent := BankAccountCreatedEventV1{Email: email, Address: address, FirstName: firstName, LastName: lastName, Balance: balance, Status: status}
 	return es.NewEvent(aggregate, BalanceDepositedEventType, &bankAccountCreatedEvent)
 }
