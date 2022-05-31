@@ -3,7 +3,9 @@ package server
 import (
 	"context"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/config"
+	"github.com/AleksK1NG/go-cqrs-eventsourcing/internal/bankAccount/service"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/internal/metrics"
+	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/es"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/interceptors"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/logger"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/middlewares"
@@ -45,6 +47,7 @@ type server struct {
 	elasticClient *v7.Client
 	echo          *echo.Echo
 	ps            *http.Server
+	bs            *service.BankAccountService
 }
 
 func NewServer(log logger.Logger, cfg config.Config) *server {
@@ -89,6 +92,9 @@ func (s *server) Run() error {
 		s.log.Errorf("(initElasticClient) err: %v", err)
 		return err
 	}
+
+	eventStore := es.NewPgEventStore(s.log, s.cfg.EventSourcingConfig, s.pgxConn, nil)
+	s.bs = service.NewBankAccountService(s.log, eventStore)
 
 	// run metrics and health check
 	s.runMetrics(cancel)

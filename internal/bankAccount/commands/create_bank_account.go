@@ -27,10 +27,10 @@ type CreateBankAccount interface {
 
 type createBankAccountCmdHandler struct {
 	log logger.Logger
-	es  es.AggregateStore[es.Aggregate]
+	es  es.AggregateStore
 }
 
-func NewCreateBankAccountCmdHandler(log logger.Logger, es es.AggregateStore[es.Aggregate]) *createBankAccountCmdHandler {
+func NewCreateBankAccountCmdHandler(log logger.Logger, es es.AggregateStore) *createBankAccountCmdHandler {
 	return &createBankAccountCmdHandler{log: log, es: es}
 }
 
