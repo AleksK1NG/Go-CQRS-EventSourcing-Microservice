@@ -10,8 +10,8 @@ type BankAccount struct {
 	Status    string  `json:"status"`
 }
 
-func NewBankAccount() *BankAccount {
-	return &BankAccount{}
+func NewBankAccount(id string) *BankAccount {
+	return &BankAccount{ID: id}
 }
 
 func (b *BankAccount) DepositBalance(amount float64) {

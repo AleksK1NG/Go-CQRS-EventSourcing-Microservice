@@ -25,12 +25,11 @@ func NewBankAccountAggregate(id string) *BankAccountAggregate {
 		return nil
 	}
 
-	bankAccountAggregate := &BankAccountAggregate{BankAccount: NewBankAccount()}
+	bankAccountAggregate := &BankAccountAggregate{BankAccount: NewBankAccount(id)}
 	aggregateBase := es.NewAggregateBase(bankAccountAggregate.When)
 	aggregateBase.SetType(BankAccountAggregateType)
 	aggregateBase.SetID(id)
 	bankAccountAggregate.AggregateBase = aggregateBase
-	bankAccountAggregate.SetID(id)
 	return bankAccountAggregate
 }
 

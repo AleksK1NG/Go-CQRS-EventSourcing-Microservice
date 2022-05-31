@@ -17,13 +17,13 @@ func (s *server) initElasticClient(ctx context.Context) error {
 	if err != nil {
 		return errors.Wrap(err, "client.Ping")
 	}
-	s.log.Infof("Elasticsearch returned with code {%d} and version {%s}", code, info.Version.Number)
+	s.log.Infof("Elasticsearch returned with code %d and version %s", code, info.Version.Number)
 
 	esVersion, err := s.elasticClient.ElasticsearchVersion(s.cfg.Elastic.URL)
 	if err != nil {
 		return errors.Wrap(err, "client.ElasticsearchVersion")
 	}
-	s.log.Infof("Elasticsearch version {%s}", esVersion)
+	s.log.Infof("Elasticsearch version %s", esVersion)
 
 	return nil
 }

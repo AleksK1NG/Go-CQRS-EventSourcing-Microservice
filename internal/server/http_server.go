@@ -39,8 +39,8 @@ func (s *server) mapRoutes() {
 	s.echo.Use(s.mw.RequestLoggerMiddleware)
 	s.echo.Use(middleware.RecoverWithConfig(middleware.RecoverConfig{
 		StackSize:         stackSize,
-		DisablePrintStack: true,
-		DisableStackAll:   true,
+		DisablePrintStack: false,
+		DisableStackAll:   false,
 	}))
 	s.echo.Use(middleware.RequestID())
 	s.echo.Use(middleware.GzipWithConfig(middleware.GzipConfig{

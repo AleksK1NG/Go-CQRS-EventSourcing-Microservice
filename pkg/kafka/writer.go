@@ -17,6 +17,7 @@ func NewWriter(brokers []string, errLogger kafka.Logger) *kafka.Writer {
 		Compression:  compress.Snappy,
 		ReadTimeout:  writerReadTimeout,
 		WriteTimeout: writerWriteTimeout,
+		BatchTimeout: batchTimeout,
 		Async:        false,
 	}
 	return w

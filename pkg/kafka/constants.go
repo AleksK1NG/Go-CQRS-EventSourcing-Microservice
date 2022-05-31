@@ -13,8 +13,9 @@ const (
 	dialTimeout            = 3 * time.Minute
 	maxWait                = 3 * time.Second
 
-	writerReadTimeout  = 10 * time.Second
-	writerWriteTimeout = 10 * time.Second
+	writerReadTimeout  = 1 * time.Second
+	writerWriteTimeout = 1 * time.Second
+	batchTimeout       = 300 * time.Millisecond
 
 	writerRequireNoneReadTimeout  = 5 * time.Second
 	writerRequireNoneWriteTimeout = 5 * time.Second
