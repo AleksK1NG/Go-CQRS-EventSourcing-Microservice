@@ -7,6 +7,7 @@ import (
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/internal/metrics"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/es"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/interceptors"
+	kafkaClient "github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/kafka"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/logger"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/middlewares"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/mongodb"
@@ -93,7 +94,12 @@ func (s *server) Run() error {
 		return err
 	}
 
-	eventStore := es.NewPgEventStore(s.log, s.cfg.EventSourcingConfig, s.pgxConn, nil)
+	// kafka producer
+	kafkaProducer := kafkaClient.NewProducer(s.log, s.cfg.Kafka.Brokers)
+	defer kafkaProducer.Close() // nolint: errcheck
+
+	eventBus := es.NewKafkaEventsBus(kafkaProducer, s.cfg.KafkaPublisherConfig)
+	eventStore := es.NewPgEventStore(s.log, s.cfg.EventSourcingConfig, s.pgxConn, eventBus)
 	s.bs = service.NewBankAccountService(s.log, eventStore)
 
 	// run metrics and health check
