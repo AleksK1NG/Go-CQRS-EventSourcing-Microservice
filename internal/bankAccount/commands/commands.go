@@ -1,9 +1,9 @@
 package commands
 
 type BankAccountCommands struct {
-	ChangeEmail       ChangeEmail
-	DepositBalance    DepositBalance
-	CreateBankAccount CreateBankAccount
+	ChangeEmail
+	DepositBalance
+	CreateBankAccount
 }
 
 func NewBankAccountCommands(changeEmail ChangeEmail, depositBalance DepositBalance, createBankAccount CreateBankAccount) *BankAccountCommands {
