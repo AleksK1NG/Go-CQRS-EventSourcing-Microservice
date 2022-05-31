@@ -94,6 +94,17 @@ func (s *server) Run() error {
 		return err
 	}
 
+	// connect kafka brokers
+	if err := s.connectKafkaBrokers(ctx); err != nil {
+		return errors.Wrap(err, "s.connectKafkaBrokers")
+	}
+	defer s.kafkaConn.Close() // nolint: errcheck
+
+	// init kafka topics
+	if s.cfg.Kafka.InitTopics {
+		s.initKafkaTopics(ctx)
+	}
+
 	// kafka producer
 	kafkaProducer := kafkaClient.NewProducer(s.log, s.cfg.Kafka.Brokers)
 	defer kafkaProducer.Close() // nolint: errcheck

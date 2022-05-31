@@ -29,7 +29,7 @@ postgres:
   dbName: bank_accounts
   sslMode: false
 kafka:
-  brokers: [ "localhost:9092" ]
+  brokers: [ "localhost:9093" ]
   groupID: bank_account_microservice_consumer
   initTopics: true
 kafkaTopics:

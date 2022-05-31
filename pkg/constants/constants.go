@@ -11,6 +11,7 @@ const (
 	PostgresqlHost = "POSTGRES_HOST"
 	PostgresqlPort = "POSTGRES_PORT"
 	ElasticUrl     = "ELASTIC_URL"
+	TCP            = "tcp"
 
 	ReaderServicePort = "READER_SERVICE"
 
