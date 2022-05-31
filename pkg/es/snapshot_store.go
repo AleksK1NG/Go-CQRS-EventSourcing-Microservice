@@ -9,40 +9,38 @@ import (
 )
 
 // SaveSnapshot save es.Aggregate snapshot
-func (p *pgEventStore[T]) SaveSnapshot(ctx context.Context, aggregate Aggregate) error {
+func (p *pgEventStore) SaveSnapshot(ctx context.Context, aggregate Aggregate) error {
 	span, ctx := opentracing.StartSpanFromContext(ctx, "pgEventStore.SaveSnapshot")
 	defer span.Finish()
 	span.LogFields(log.String("aggregate", aggregate.String()))
 
 	snapshot, err := NewSnapshotFromAggregate(aggregate)
 	if err != nil {
-		tracing.TraceErr(span, err)
-		return errors.Wrap(err, "NewSnapshotFromAggregate")
+		return tracing.TraceWithErr(span, errors.Wrap(err, "NewSnapshotFromAggregate"))
 	}
 
 	_, err = p.db.Exec(ctx, saveSnapshotQuery, snapshot.ID, snapshot.Type, snapshot.State, snapshot.Version)
 	if err != nil {
-		tracing.TraceErr(span, err)
-		return errors.Wrap(err, "db.Exec")
+		return tracing.TraceWithErr(span, errors.Wrap(err, "db.Exec"))
 	}
 
-	p.log.Debugf("(SaveSnapshot) snapshot: {%s}", snapshot.String())
+	p.log.Debugf("(SaveSnapshot) snapshot: %s", snapshot.String())
 	span.LogFields(log.String("snapshot", snapshot.String()))
 	return nil
 }
 
 // GetSnapshot load es.Aggregate snapshot
-func (p *pgEventStore[T]) GetSnapshot(ctx context.Context, id string) (*Snapshot, error) {
+func (p *pgEventStore) GetSnapshot(ctx context.Context, id string) (*Snapshot, error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, "pgEventStore.GetSnapshot")
 	defer span.Finish()
 	span.LogFields(log.String("AggregateID", id))
 
 	var snapshot Snapshot
 	if err := p.db.QueryRow(ctx, getSnapshotQuery, id).Scan(&snapshot.ID, &snapshot.Type, &snapshot.State, &snapshot.Version); err != nil {
-		return nil, errors.Wrap(err, "db.QueryRow")
+		return nil, tracing.TraceWithErr(span, errors.Wrap(err, "db.QueryRow"))
 	}
 
-	p.log.Debugf("(SaveSnapshot) snapshot: {%s}", snapshot.String())
+	p.log.Debugf("(SaveSnapshot) snapshot: %s", snapshot.String())
 	span.LogFields(log.String("snapshot", snapshot.String()))
 	return &snapshot, nil
 }
