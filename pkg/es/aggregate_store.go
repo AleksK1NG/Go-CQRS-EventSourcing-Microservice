@@ -2,7 +2,7 @@ package es
 
 import (
 	"context"
-	"encoding/json"
+	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/es/serializer"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/tracing"
 	"github.com/jackc/pgx/v4"
 	"github.com/opentracing/opentracing-go"
@@ -22,8 +22,8 @@ func (p *pgEventStore) Load(ctx context.Context, aggregate Aggregate) error {
 	}
 
 	if snapshot != nil {
-		if err := json.Unmarshal(snapshot.State, aggregate); err != nil {
-			p.log.Errorf("(Load) json.Unmarshal err: %v", err)
+		if err := serializer.Unmarshal(snapshot.State, aggregate); err != nil {
+			p.log.Errorf("(Load) serializer.Unmarshal err: %v", err)
 			return tracing.TraceWithErr(span, errors.Wrap(err, "json.Unmarshal"))
 		}
 
@@ -54,7 +54,7 @@ func (p *pgEventStore) Save(ctx context.Context, aggregate Aggregate) (err error
 	span.LogFields(log.String("aggregate", aggregate.String()))
 
 	if len(aggregate.GetChanges()) == 0 {
-		p.log.Debug("(Save) aggregate.GetUncommittedEvents()) == 0")
+		p.log.Debug("(Save) aggregate.GetChanges()) == 0")
 		span.LogFields(log.Int("events", len(aggregate.GetChanges())))
 		return nil
 	}
@@ -75,7 +75,17 @@ func (p *pgEventStore) Save(ctx context.Context, aggregate Aggregate) (err error
 		}
 	}()
 
-	events := aggregate.GetChanges()
+	changes := aggregate.GetChanges()
+	events := make([]Event, 0, len(changes))
+
+	for change := range changes {
+		event, err := p.serializer.SerializeEvent(aggregate, change)
+		if err != nil {
+			p.log.Errorf("(Save) serializer.SerializeEvent err: %v", err)
+			return tracing.TraceWithErr(span, errors.Wrap(err, "serializer.SerializeEvent"))
+		}
+		events = append(events, event)
+	}
 
 	if err := p.saveEventsTx(ctx, tx, events); err != nil {
 		return err

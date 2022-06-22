@@ -16,14 +16,15 @@ const (
 )
 
 type pgEventStore struct {
-	log      logger.Logger
-	cfg      Config
-	db       *pgxpool.Pool
-	eventBus EventsBus
+	log        logger.Logger
+	cfg        Config
+	db         *pgxpool.Pool
+	eventBus   EventsBus
+	serializer Serializer
 }
 
-func NewPgEventStore(log logger.Logger, cfg Config, db *pgxpool.Pool, eventBus EventsBus) *pgEventStore {
-	return &pgEventStore{log: log, cfg: cfg, db: db, eventBus: eventBus}
+func NewPgEventStore(log logger.Logger, cfg Config, db *pgxpool.Pool, eventBus EventsBus, serializer Serializer) *pgEventStore {
+	return &pgEventStore{log: log, cfg: cfg, db: db, eventBus: eventBus, serializer: serializer}
 }
 
 // SaveEvents save aggregate uncommitted events as one batch and process with event bus using transaction
@@ -54,14 +55,12 @@ func (p *pgEventStore) SaveEvents(ctx context.Context, events []Event) error {
 			events[0].GetMetadata(),
 		)
 		if err != nil {
-			tracing.TraceErr(span, err)
-			p.log.Errorf("(SaveEvents) tx.Exec err: %v", err)
+			p.log.Errorf("(SaveEvents) tx.Exec err: %v", tracing.TraceWithErr(span, err))
 			return RollBackTx(ctx, tx, err)
 		}
 
 		if err := p.processEvents(ctx, events); err != nil {
-			tracing.TraceErr(span, err)
-			return RollBackTx(ctx, tx, err)
+			return RollBackTx(ctx, tx, tracing.TraceWithErr(span, err))
 		}
 
 		p.log.Debugf("(SaveEvents) result: {%s}, AggregateID: {%s}, AggregateVersion: {%v}", result.String(), events[0].GetAggregateID(), events[0].GetVersion())
@@ -82,14 +81,12 @@ func (p *pgEventStore) SaveEvents(ctx context.Context, events []Event) error {
 	}
 
 	if err := tx.SendBatch(ctx, batch).Close(); err != nil {
-		tracing.TraceErr(span, err)
-		p.log.Errorf("(SaveEvents) tx.SendBatch err: %v", err)
+		p.log.Errorf("(SaveEvents) tx.SendBatch err: %v", tracing.TraceWithErr(span, err))
 		return RollBackTx(ctx, tx, err)
 	}
 
 	if err := p.processEvents(ctx, events); err != nil {
-		tracing.TraceErr(span, err)
-		return RollBackTx(ctx, tx, err)
+		return RollBackTx(ctx, tx, tracing.TraceWithErr(span, err))
 	}
 
 	return tx.Commit(ctx)
@@ -102,8 +99,7 @@ func (p *pgEventStore) LoadEvents(ctx context.Context, aggregateID string) ([]Ev
 
 	rows, err := p.db.Query(ctx, getEventsQuery, aggregateID)
 	if err != nil {
-		tracing.TraceErr(span, err)
-		p.log.Errorf("(LoadEvents) db.Query err: %v", err)
+		p.log.Errorf("(LoadEvents) db.Query err: %v", tracing.TraceWithErr(span, err))
 		return nil, errors.Wrap(err, "db.Query")
 	}
 	defer rows.Close()
@@ -122,8 +118,7 @@ func (p *pgEventStore) LoadEvents(ctx context.Context, aggregateID string) ([]Ev
 			&event.Timestamp,
 			&event.Metadata,
 		); err != nil {
-			tracing.TraceErr(span, err)
-			p.log.Errorf("(LoadEvents) rows.Next err: %v", err)
+			p.log.Errorf("(LoadEvents) rows.Next err: %v", tracing.TraceWithErr(span, err))
 			return nil, errors.Wrap(err, "rows.Scan")
 		}
 
@@ -131,9 +126,8 @@ func (p *pgEventStore) LoadEvents(ctx context.Context, aggregateID string) ([]Ev
 	}
 
 	if err := rows.Err(); err != nil {
-		tracing.TraceErr(span, err)
 		p.log.Errorf("(LoadEvents) rows.Err err: %v", err)
-		return nil, errors.Wrap(err, "rows.Err")
+		return nil, tracing.TraceWithErr(span, errors.Wrap(err, "rows.Err"))
 	}
 
 	return events, nil
@@ -147,14 +141,14 @@ func (p *pgEventStore) loadEvents(ctx context.Context, aggregate Aggregate) erro
 
 	rows, err := p.db.Query(ctx, getEventsQuery, aggregate.GetID())
 	if err != nil {
-		tracing.TraceErr(span, err)
 		p.log.Errorf("(loadEvents) db.Query err: %v", err)
-		return errors.Wrap(err, "db.Query")
+		return tracing.TraceWithErr(span, errors.Wrap(err, "db.Query"))
 	}
 	defer rows.Close()
 
 	for rows.Next() {
 		var event Event
+
 		if err := rows.Scan(
 			&event.EventID,
 			&event.AggregateID,
@@ -165,22 +159,25 @@ func (p *pgEventStore) loadEvents(ctx context.Context, aggregate Aggregate) erro
 			&event.Timestamp,
 			&event.Metadata,
 		); err != nil {
-			tracing.TraceErr(span, err)
 			p.log.Errorf("(loadEvents) rows.Next err: %v", err)
-			return errors.Wrap(err, "rows.Scan")
+			return tracing.TraceWithErr(span, errors.Wrap(err, "rows.Scan"))
 		}
 
-		if err := aggregate.RaiseEvent(event); err != nil {
-			tracing.TraceErr(span, err)
+		deserializedEvent, err := p.serializer.DeserializeEvent(event)
+		if err != nil {
+			p.log.Errorf("(loadEvents) serializer.DeserializeEvent err: %v", err)
+			return tracing.TraceWithErr(span, errors.Wrap(err, "serializer.DeserializeEvent"))
+		}
+
+		if err := aggregate.RaiseEvent(deserializedEvent); err != nil {
 			p.log.Errorf("(loadEvents) aggregate.RaiseEvent err: %v", err)
-			return errors.Wrap(err, "RaiseEvent")
+			return tracing.TraceWithErr(span, errors.Wrap(err, "RaiseEvent"))
 		}
 	}
 
 	if err := rows.Err(); err != nil {
-		tracing.TraceErr(span, err)
 		p.log.Errorf("(loadEvents) rows.Err err: %v", err)
-		return errors.Wrap(err, "rows.Err")
+		return tracing.TraceWithErr(span, errors.Wrap(err, "rows.Err"))
 	}
 
 	span.LogFields(log.String("aggregate with events", aggregate.String()))
@@ -197,9 +194,8 @@ func (p *pgEventStore) Exists(ctx context.Context, aggregateID string) (bool, er
 		if err == pgx.ErrNoRows {
 			return false, nil
 		}
-		tracing.TraceErr(span, err)
 		p.log.Errorf("(Exists) db.QueryRow err: %v", err)
-		return false, errors.Wrap(err, "db.QueryRow")
+		return false, tracing.TraceWithErr(span, errors.Wrap(err, "db.QueryRow"))
 	}
 
 	p.log.Debugf("(Exists Aggregate): id: %s", id)
@@ -213,9 +209,8 @@ func (p *pgEventStore) loadEventsByVersion(ctx context.Context, aggregateID stri
 
 	rows, err := p.db.Query(ctx, getEventsByVersionQuery, aggregateID, versionFrom)
 	if err != nil {
-		tracing.TraceErr(span, err)
 		p.log.Errorf("(loadEventsByVersion) db.Query err: %v", err)
-		return nil, errors.Wrap(err, "db.Query")
+		return nil, tracing.TraceWithErr(span, errors.Wrap(err, "db.Query"))
 	}
 	defer rows.Close()
 
@@ -223,6 +218,7 @@ func (p *pgEventStore) loadEventsByVersion(ctx context.Context, aggregateID stri
 
 	for rows.Next() {
 		var event Event
+
 		if err := rows.Scan(
 			&event.AggregateID,
 			&event.AggregateType,
@@ -232,18 +228,16 @@ func (p *pgEventStore) loadEventsByVersion(ctx context.Context, aggregateID stri
 			&event.Timestamp,
 			&event.Metadata,
 		); err != nil {
-			tracing.TraceErr(span, err)
 			p.log.Errorf("(loadEventsByVersion) rows.Next err: %v", err)
-			return nil, errors.Wrap(err, "rows.Scan")
+			return nil, tracing.TraceWithErr(span, errors.Wrap(err, "rows.Scan"))
 		}
 
 		events = append(events, event)
 	}
 
 	if err := rows.Err(); err != nil {
-		tracing.TraceErr(span, err)
 		p.log.Errorf("(loadEventsByVersion) rows.Err err: %v", err)
-		return nil, errors.Wrap(err, "rows.Err")
+		return nil, tracing.TraceWithErr(span, errors.Wrap(err, "rows.Err"))
 	}
 
 	return events, nil
@@ -256,14 +250,14 @@ func (p *pgEventStore) loadAggregateEventsByVersion(ctx context.Context, aggrega
 
 	rows, err := p.db.Query(ctx, getEventsByVersionQuery, aggregate.GetID(), aggregate.GetVersion())
 	if err != nil {
-		tracing.TraceErr(span, err)
 		p.log.Errorf("(loadAggregateEventsByVersion) db.Query err: %v", err)
-		return errors.Wrap(err, "db.Query")
+		return tracing.TraceWithErr(span, errors.Wrap(err, "db.Query"))
 	}
 	defer rows.Close()
 
 	for rows.Next() {
 		var event Event
+
 		if err := rows.Scan(
 			&event.EventID,
 			&event.AggregateID,
@@ -274,24 +268,27 @@ func (p *pgEventStore) loadAggregateEventsByVersion(ctx context.Context, aggrega
 			&event.Timestamp,
 			&event.Metadata,
 		); err != nil {
-			tracing.TraceErr(span, err)
 			p.log.Errorf("(loadAggregateEventsByVersion) rows.Scan err: %v", err)
-			return errors.Wrap(err, "rows.Scan")
+			return tracing.TraceWithErr(span, errors.Wrap(err, "rows.Scan"))
 		}
 
-		if err := aggregate.RaiseEvent(event); err != nil {
-			tracing.TraceErr(span, err)
+		deserializedEvent, err := p.serializer.DeserializeEvent(event)
+		if err != nil {
+			p.log.Errorf("(loadAggregateEventsByVersion) serializer.DeserializeEvent err: %v", err)
+			return tracing.TraceWithErr(span, errors.Wrap(err, "serializer.DeserializeEvent"))
+		}
+
+		if err := aggregate.RaiseEvent(deserializedEvent); err != nil {
 			p.log.Errorf("(loadAggregateEventsByVersion) aggregate.RaiseEvent err: %v", err)
-			return errors.Wrap(err, "RaiseEvent")
+			return tracing.TraceWithErr(span, errors.Wrap(err, "RaiseEvent"))
 		}
 
 		p.log.Debugf("(loadAggregateEventsByVersion) event: {%s}", event.String())
 	}
 
 	if err := rows.Err(); err != nil {
-		tracing.TraceErr(span, err)
 		p.log.Errorf("(loadEventsByVersion) rows.Err err: %v", err)
-		return errors.Wrap(err, "rows.Err")
+		return tracing.TraceWithErr(span, errors.Wrap(err, "rows.Err"))
 	}
 
 	span.LogFields(log.String("aggregate with events", aggregate.String()))
@@ -304,9 +301,8 @@ func (p *pgEventStore) loadEventsByVersionTx(ctx context.Context, tx pgx.Tx, agg
 
 	rows, err := tx.Query(ctx, getEventsByVersionQuery, aggregateID, versionFrom)
 	if err != nil {
-		tracing.TraceErr(span, err)
 		p.log.Errorf("(loadEventsByVersionTx) tx.Query err: %v", err)
-		return nil, errors.Wrap(err, "tx.Query")
+		return nil, tracing.TraceWithErr(span, errors.Wrap(err, "tx.Query"))
 	}
 	defer rows.Close()
 
@@ -314,6 +310,7 @@ func (p *pgEventStore) loadEventsByVersionTx(ctx context.Context, tx pgx.Tx, agg
 
 	for rows.Next() {
 		var event Event
+
 		if err := rows.Scan(
 			&event.EventID,
 			&event.AggregateID,
@@ -324,18 +321,16 @@ func (p *pgEventStore) loadEventsByVersionTx(ctx context.Context, tx pgx.Tx, agg
 			&event.Timestamp,
 			&event.Metadata,
 		); err != nil {
-			tracing.TraceErr(span, err)
 			p.log.Errorf("(loadEventsByVersionTx) rows.Next err: %v", err)
-			return nil, errors.Wrap(err, "rows.Scan")
+			return nil, tracing.TraceWithErr(span, errors.Wrap(err, "rows.Scan"))
 		}
 
 		events = append(events, event)
 	}
 
 	if err := rows.Err(); err != nil {
-		tracing.TraceErr(span, err)
 		p.log.Errorf("(loadEventsByVersionTx) rows.Err err: %v", err)
-		return nil, errors.Wrap(err, "rows.Err")
+		return nil, tracing.TraceWithErr(span, errors.Wrap(err, "rows.Err"))
 	}
 
 	return events, nil
@@ -347,9 +342,8 @@ func (p *pgEventStore) handleConcurrency(ctx context.Context, tx pgx.Tx, events 
 
 	result, err := tx.Exec(ctx, handleConcurrentWriteQuery, events[0].GetAggregateID())
 	if err != nil {
-		tracing.TraceErr(span, err)
 		p.log.Errorf("(handleConcurrency) tx.Exec err: %v", err)
-		return errors.Wrap(err, "tx.Exec")
+		return tracing.TraceWithErr(span, errors.Wrap(err, "tx.Exec"))
 	}
 
 	p.log.Debugf("(handleConcurrency) result: {%s}", result.String())
@@ -376,9 +370,8 @@ func (p *pgEventStore) saveEventsTx(ctx context.Context, tx pgx.Tx, events []Eve
 			events[0].GetMetadata(),
 		)
 		if err != nil {
-			tracing.TraceErr(span, err)
 			p.log.Errorf("(saveEventsTx) tx.Exec err: %v", err)
-			return errors.Wrap(err, "tx.Exec")
+			return tracing.TraceWithErr(span, errors.Wrap(err, "tx.Exec"))
 		}
 
 		p.log.Debugf("(saveEventsTx): %s, AggregateID: %s, AggregateVersion: %v", result.String(), events[0].GetAggregateID(), events[0].GetVersion())
@@ -399,9 +392,8 @@ func (p *pgEventStore) saveEventsTx(ctx context.Context, tx pgx.Tx, events []Eve
 	}
 
 	if err := tx.SendBatch(ctx, batch).Close(); err != nil {
-		tracing.TraceErr(span, err)
 		p.log.Errorf("(saveEventsTx) tx.SendBatch err: %v", err)
-		return errors.Wrap(err, "tx.SendBatch")
+		return tracing.TraceWithErr(span, errors.Wrap(err, "tx.SendBatch"))
 	}
 
 	p.log.Debugf("(saveEventsTx) AggregateID: %s, AggregateVersion: %v, AggregateType: %s", events[0].GetAggregateID(), events[0].GetVersion(), events[0].GetAggregateType())
@@ -414,16 +406,14 @@ func (p *pgEventStore) saveSnapshotTx(ctx context.Context, tx pgx.Tx, aggregate 
 
 	snapshot, err := NewSnapshotFromAggregate(aggregate)
 	if err != nil {
-		tracing.TraceErr(span, err)
 		p.log.Errorf("(saveSnapshotTx) NewSnapshotFromAggregate err: %v", err)
-		return err
+		return tracing.TraceWithErr(span, err)
 	}
 
 	_, err = tx.Exec(ctx, saveSnapshotQuery, snapshot.ID, snapshot.Type, snapshot.State, snapshot.Version)
 	if err != nil {
-		tracing.TraceErr(span, err)
 		p.log.Errorf("(saveSnapshotTx) tx.Exec err: %v", err)
-		return errors.Wrap(err, "tx.Exec")
+		return tracing.TraceWithErr(span, errors.Wrap(err, "tx.Exec"))
 	}
 
 	p.log.Debugf("(saveSnapshotTx) snapshot: %s", snapshot.String())

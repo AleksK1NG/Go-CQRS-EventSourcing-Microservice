@@ -11,24 +11,24 @@ const (
 )
 
 type When interface {
-	When(event Event) error
+	When(event any) error
 }
 
-type when func(event Event) error
+type when func(event any) error
 
 // Apply process Aggregate Event
 type Apply interface {
-	Apply(event Event) error
+	Apply(event any) error
 }
 
 // Load create Aggregate state from Event's.
 type Load interface {
-	Load(events []Event) error
+	Load(events []any) error
 }
 
 // RaiseEvent process applied Aggregate Event from event store
 type RaiseEvent interface {
-	RaiseEvent(event Event) error
+	RaiseEvent(event any) error
 }
 
 type Aggregate interface {
@@ -43,7 +43,7 @@ type AggregateRoot interface {
 	SetID(id string) *AggregateBase
 	GetType() AggregateType
 	SetType(aggregateType AggregateType)
-	GetChanges() []Event
+	GetChanges() []any
 	ClearChanges()
 	GetVersion() uint64
 	ToSnapshot()
@@ -60,7 +60,7 @@ type AggregateType string
 type AggregateBase struct {
 	ID      string
 	Version uint64
-	Changes []Event
+	Changes []any
 	Type    AggregateType
 	when    when
 }
@@ -85,7 +85,7 @@ func NewAggregateBase(when when) *AggregateBase {
 
 	return &AggregateBase{
 		Version: startVersion,
-		Changes: make([]Event, 0, changesEventsCap),
+		Changes: make([]any, 0, changesEventsCap),
 		when:    when,
 	}
 }
@@ -118,21 +118,21 @@ func (a *AggregateBase) GetVersion() uint64 {
 
 // ClearChanges clear AggregateBase uncommitted Event's
 func (a *AggregateBase) ClearChanges() {
-	a.Changes = make([]Event, 0, changesEventsCap)
+	a.Changes = make([]any, 0, changesEventsCap)
 }
 
 // GetChanges get AggregateBase uncommitted Event's
-func (a *AggregateBase) GetChanges() []Event {
+func (a *AggregateBase) GetChanges() []any {
 	return a.Changes
 }
 
 // Load add existing events from event store to aggregate using When interface method
-func (a *AggregateBase) Load(events []Event) error {
+func (a *AggregateBase) Load(events []any) error {
 
 	for _, evt := range events {
-		if evt.GetAggregateID() != a.GetID() || evt.GetAggregateType() != a.GetType() {
-			return ErrInvalidAggregate
-		}
+		//if evt.GetAggregateID() != a.GetID() || evt.GetAggregateType() != a.GetType() {
+		//	return ErrInvalidAggregate
+		//}
 
 		if err := a.when(evt); err != nil {
 			return err
@@ -145,37 +145,37 @@ func (a *AggregateBase) Load(events []Event) error {
 }
 
 // Apply push event to aggregate uncommitted events using When method
-func (a *AggregateBase) Apply(event Event) error {
-	if err := a.validateEvent(event); err != nil {
-		return err
-	}
-
-	event.SetAggregateType(a.GetType())
+func (a *AggregateBase) Apply(event any) error {
+	//if err := a.validateEvent(event); err != nil {
+	//	return err
+	//}
+	//
+	//event.SetAggregateType(a.GetType())
 
 	if err := a.when(event); err != nil {
 		return err
 	}
 
 	a.Version++
-	event.SetVersion(a.GetVersion())
+	//event.SetVersion(a.GetVersion())
 	a.Changes = append(a.Changes, event)
 	return nil
 }
 
 // RaiseEvent push event to aggregate applied events using When method, used for load directly from eventstore
-func (a *AggregateBase) RaiseEvent(event Event) error {
-	if err := a.validateEvent(event); err != nil {
-		return err
-	}
-
-	event.SetAggregateType(a.GetType())
+func (a *AggregateBase) RaiseEvent(event any) error {
+	//if err := a.validateEvent(event); err != nil {
+	//	return err
+	//}
+	//
+	//event.SetAggregateType(a.GetType())
 
 	if err := a.when(event); err != nil {
 		return err
 	}
 
 	a.Version++
-	return a.validateVersion(event)
+	return nil
 }
 
 // ToSnapshot prepare AggregateBase for saving Snapshot.
