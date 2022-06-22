@@ -7,10 +7,11 @@ const (
 )
 
 type EmailChangedEventV1 struct {
-	Email string `json:"email"`
+	Email    string `json:"email"`
+	Metadata []byte `json:"-"`
 }
 
-func NewEmailChangedEventV1(aggregate es.Aggregate, email string) (es.Event, error) {
+func NewEmailChangedEventV1(email string) *EmailChangedEventV1 {
 	emailChangedEvent := EmailChangedEventV1{Email: email}
-	return es.NewEvent(aggregate, EmailChangedEventType, &emailChangedEvent)
+	return &emailChangedEvent
 }

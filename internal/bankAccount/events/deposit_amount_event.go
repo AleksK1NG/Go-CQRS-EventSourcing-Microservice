@@ -9,9 +9,10 @@ const (
 type BalanceDepositedEventV1 struct {
 	Amount    float64 `json:"amount"`
 	PaymentID string  `json:"paymentID"`
+	Metadata  []byte  `json:"-"`
 }
 
-func NewBalanceDepositedEventV1(aggregate es.Aggregate, amount float64, paymentID string) (es.Event, error) {
+func NewBalanceDepositedEventV1(amount float64, paymentID string) *BalanceDepositedEventV1 {
 	balanceDepositedEvent := BalanceDepositedEventV1{Amount: amount, PaymentID: paymentID}
-	return es.NewEvent(aggregate, BankAccountCreatedEventType, &balanceDepositedEvent)
+	return &balanceDepositedEvent
 }

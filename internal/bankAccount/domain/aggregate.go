@@ -5,10 +5,10 @@ import (
 	bankAccountErrors "github.com/AleksK1NG/go-cqrs-eventsourcing/internal/bankAccount/errors"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/internal/bankAccount/events"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/es"
+	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/es/serializer"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/tracing"
 	"github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/log"
-	"github.com/pkg/errors"
 )
 
 const (
@@ -33,28 +33,16 @@ func NewBankAccountAggregate(id string) *BankAccountAggregate {
 	return bankAccountAggregate
 }
 
-func (a *BankAccountAggregate) When(event es.Event) error {
-	switch event.GetEventType() {
-	case events.BankAccountCreatedEventType:
-		bankAccountCreatedEventV1 := events.BankAccountCreatedEventV1{}
-		if err := event.GetJsonData(&bankAccountCreatedEventV1); err != nil {
-			return err
-		}
-		a.onBankAccountCreated(bankAccountCreatedEventV1)
+func (a *BankAccountAggregate) When(event any) error {
+	switch evt := event.(type) {
+	case events.BankAccountCreatedEventV1:
+		a.onBankAccountCreated(evt)
 		return nil
-	case events.BalanceDepositedEventType:
-		balanceDepositedEvent := events.BalanceDepositedEventV1{}
-		if err := event.GetJsonData(&balanceDepositedEvent); err != nil {
-			return err
-		}
-		a.onBalanceDeposited(balanceDepositedEvent)
+	case events.BalanceDepositedEventV1:
+		a.onBalanceDeposited(evt)
 		return nil
-	case events.EmailChangedEventType:
-		emailChangedEvent := events.EmailChangedEventV1{}
-		if err := event.GetJsonData(&emailChangedEvent); err != nil {
-			return err
-		}
-		a.onEmailChanged(emailChangedEvent)
+	case events.EmailChangedEventV1:
+		a.onEmailChanged(evt)
 		return nil
 	default:
 		return bankAccountErrors.ErrUnknownEventType
@@ -88,16 +76,13 @@ func (a *BankAccountAggregate) CreateNewBankAccount(ctx context.Context, email, 
 	defer span.Finish()
 	span.LogFields(log.String("AggregateID", a.GetID()))
 
-	// TODO: check email availability
+	event := events.NewBankAccountCreatedEventV1(email, address, firstName, lastName, status, balance)
 
-	event, err := events.NewBankAccountCreatedEventV1(a, email, address, firstName, lastName, status, balance)
+	metaDataBytes, err := serializer.Marshal(tracing.ExtractTextMapCarrier(span.Context()))
 	if err != nil {
-		return tracing.TraceWithErr(span, err)
+		return err
 	}
-
-	if err := event.SetMetadata(tracing.ExtractTextMapCarrier(span.Context())); err != nil {
-		return tracing.TraceWithErr(span, errors.Wrap(err, "SetMetadata"))
-	}
+	event.Metadata = metaDataBytes
 
 	return a.Apply(event)
 }
@@ -107,14 +92,13 @@ func (a *BankAccountAggregate) DepositBalance(ctx context.Context, amount float6
 	defer span.Finish()
 	span.LogFields(log.String("AggregateID", a.GetID()))
 
-	event, err := events.NewBalanceDepositedEventV1(a, amount, paymentID)
-	if err != nil {
-		return tracing.TraceWithErr(span, err)
-	}
+	event := events.NewBalanceDepositedEventV1(amount, paymentID)
 
-	if err := event.SetMetadata(tracing.ExtractTextMapCarrier(span.Context())); err != nil {
-		return tracing.TraceWithErr(span, errors.Wrap(err, "SetMetadata"))
+	metaDataBytes, err := serializer.Marshal(tracing.ExtractTextMapCarrier(span.Context()))
+	if err != nil {
+		return err
 	}
+	event.Metadata = metaDataBytes
 
 	return a.Apply(event)
 }
@@ -124,16 +108,13 @@ func (a *BankAccountAggregate) ChangeEmail(ctx context.Context, email string) er
 	defer span.Finish()
 	span.LogFields(log.String("AggregateID", a.GetID()))
 
-	// TODO: check email availability
+	event := events.NewEmailChangedEventV1(email)
 
-	event, err := events.NewEmailChangedEventV1(a, email)
+	metaDataBytes, err := serializer.Marshal(tracing.ExtractTextMapCarrier(span.Context()))
 	if err != nil {
-		return tracing.TraceWithErr(span, err)
+		return err
 	}
-
-	if err := event.SetMetadata(tracing.ExtractTextMapCarrier(span.Context())); err != nil {
-		return tracing.TraceWithErr(span, errors.Wrap(err, "SetMetadata"))
-	}
+	event.Metadata = metaDataBytes
 
 	return a.Apply(event)
 }
