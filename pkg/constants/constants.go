@@ -74,4 +74,6 @@ const (
 	BankAccountId    = "BankAccountId"
 
 	KafkaHeaders = "{kafkaHeaders}"
+
+	Tcp = "tcp"
 )

@@ -114,6 +114,13 @@ func (s *server) Run() error {
 	eventStore := es.NewPgEventStore(s.log, s.cfg.EventSourcingConfig, s.pgxConn, eventBus, domain.NewEventSerializer())
 	s.bs = service.NewBankAccountService(s.log, eventStore)
 
+	closeGrpcServer, grpcServer, err := s.newBankAccountGrpcServer()
+	if err != nil {
+		cancel()
+		return err
+	}
+	defer closeGrpcServer() // nolint: errcheck
+
 	// run metrics and health check
 	s.runMetrics(cancel)
 	s.runHealthCheck(ctx)
@@ -128,7 +135,7 @@ func (s *server) Run() error {
 
 	<-ctx.Done()
 	s.waitShootDown(waitShotDownDuration)
-
+	grpcServer.GracefulStop()
 	if err := s.shutDownHealthCheckServer(ctx); err != nil {
 		s.log.Warnf("(shutDownHealthCheckServer) err: %v", err)
 	}
