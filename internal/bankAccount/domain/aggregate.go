@@ -9,6 +9,7 @@ import (
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/tracing"
 	"github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/log"
+	"github.com/pkg/errors"
 )
 
 const (
@@ -80,7 +81,7 @@ func (a *BankAccountAggregate) CreateNewBankAccount(ctx context.Context, email, 
 
 	metaDataBytes, err := serializer.Marshal(tracing.ExtractTextMapCarrier(span.Context()))
 	if err != nil {
-		return err
+		return errors.Wrap(err, "serializer.Marshal")
 	}
 	event.Metadata = metaDataBytes
 
@@ -96,7 +97,7 @@ func (a *BankAccountAggregate) DepositBalance(ctx context.Context, amount float6
 
 	metaDataBytes, err := serializer.Marshal(tracing.ExtractTextMapCarrier(span.Context()))
 	if err != nil {
-		return err
+		return errors.Wrap(err, "serializer.Marshal")
 	}
 	event.Metadata = metaDataBytes
 
@@ -112,7 +113,7 @@ func (a *BankAccountAggregate) ChangeEmail(ctx context.Context, email string) er
 
 	metaDataBytes, err := serializer.Marshal(tracing.ExtractTextMapCarrier(span.Context()))
 	if err != nil {
-		return err
+		return errors.Wrap(err, "serializer.Marshal")
 	}
 	event.Metadata = metaDataBytes
 
