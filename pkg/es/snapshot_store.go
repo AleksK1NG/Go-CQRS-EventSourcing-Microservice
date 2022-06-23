@@ -40,7 +40,7 @@ func (p *pgEventStore) GetSnapshot(ctx context.Context, id string) (*Snapshot, e
 		return nil, tracing.TraceWithErr(span, errors.Wrap(err, "db.QueryRow"))
 	}
 
-	p.log.Debugf("(SaveSnapshot) snapshot: %s", snapshot.String())
+	p.log.Debugf("(GetSnapshot) snapshot: %s", snapshot.String())
 	span.LogFields(log.String("snapshot", snapshot.String()))
 	return &snapshot, nil
 }

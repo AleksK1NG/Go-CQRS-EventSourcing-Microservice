@@ -78,8 +78,10 @@ func (p *pgEventStore) Save(ctx context.Context, aggregate Aggregate) (err error
 	changes := aggregate.GetChanges()
 	events := make([]Event, 0, len(changes))
 
-	for change := range changes {
-		event, err := p.serializer.SerializeEvent(aggregate, change)
+	for i := range changes {
+		e := changes[i]
+		p.log.Infof("CHANGE EVENT: %+v", e)
+		event, err := p.serializer.SerializeEvent(aggregate, changes[i])
 		if err != nil {
 			p.log.Errorf("(Save) serializer.SerializeEvent err: %v", err)
 			return tracing.TraceWithErr(span, errors.Wrap(err, "serializer.SerializeEvent"))
