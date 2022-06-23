@@ -27,7 +27,7 @@ func (s *eventSerializer) SerializeEvent(aggregate es.Aggregate, event any) (es.
 	}
 
 	switch evt := event.(type) {
-	case events.BankAccountCreatedEventV1:
+	case *events.BankAccountCreatedEventV1:
 		return es.Event{
 			EventID:       uuid.NewV4().String(),
 			AggregateID:   aggregate.GetID(),
@@ -38,7 +38,7 @@ func (s *eventSerializer) SerializeEvent(aggregate es.Aggregate, event any) (es.
 			Metadata:      evt.Metadata,
 			Timestamp:     time.Now().UTC(),
 		}, nil
-	case events.BalanceDepositedEventV1:
+	case *events.BalanceDepositedEventV1:
 		return es.Event{
 			EventID:       uuid.NewV4().String(),
 			AggregateID:   aggregate.GetID(),
@@ -49,7 +49,7 @@ func (s *eventSerializer) SerializeEvent(aggregate es.Aggregate, event any) (es.
 			Metadata:      evt.Metadata,
 			Timestamp:     time.Now().UTC(),
 		}, nil
-	case events.EmailChangedEventV1:
+	case *events.EmailChangedEventV1:
 		return es.Event{
 			EventID:       uuid.NewV4().String(),
 			AggregateID:   aggregate.GetID(),

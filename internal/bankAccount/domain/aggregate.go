@@ -36,13 +36,13 @@ func NewBankAccountAggregate(id string) *BankAccountAggregate {
 
 func (a *BankAccountAggregate) When(event any) error {
 	switch evt := event.(type) {
-	case events.BankAccountCreatedEventV1:
+	case *events.BankAccountCreatedEventV1:
 		a.onBankAccountCreated(evt)
 		return nil
-	case events.BalanceDepositedEventV1:
+	case *events.BalanceDepositedEventV1:
 		a.onBalanceDeposited(evt)
 		return nil
-	case events.EmailChangedEventV1:
+	case *events.EmailChangedEventV1:
 		a.onEmailChanged(evt)
 		return nil
 	default:
@@ -50,7 +50,7 @@ func (a *BankAccountAggregate) When(event any) error {
 	}
 }
 
-func (a *BankAccountAggregate) onBankAccountCreated(event events.BankAccountCreatedEventV1) {
+func (a *BankAccountAggregate) onBankAccountCreated(event *events.BankAccountCreatedEventV1) {
 	a.BankAccount.Email = event.Email
 	a.BankAccount.Address = event.Address
 	if event.Balance > 0 {
@@ -64,11 +64,11 @@ func (a *BankAccountAggregate) onBankAccountCreated(event events.BankAccountCrea
 	a.BankAccount.Status = event.Address
 }
 
-func (a *BankAccountAggregate) onBalanceDeposited(event events.BalanceDepositedEventV1) {
+func (a *BankAccountAggregate) onBalanceDeposited(event *events.BalanceDepositedEventV1) {
 	a.BankAccount.Balance += event.Amount
 }
 
-func (a *BankAccountAggregate) onEmailChanged(event events.EmailChangedEventV1) {
+func (a *BankAccountAggregate) onEmailChanged(event *events.EmailChangedEventV1) {
 	a.BankAccount.Email = event.Email
 }
 
