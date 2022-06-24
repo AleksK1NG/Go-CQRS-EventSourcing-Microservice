@@ -12,6 +12,5 @@ type EmailChangedEventV1 struct {
 }
 
 func NewEmailChangedEventV1(email string) *EmailChangedEventV1 {
-	emailChangedEvent := EmailChangedEventV1{Email: email}
-	return &emailChangedEvent
+	return &EmailChangedEventV1{Email: email}
 }
