@@ -106,7 +106,7 @@ func (e *Event) SetAggregateType(aggregateType AggregateType) {
 	e.AggregateType = aggregateType
 }
 
-// GetAggregateID is the ID of the Aggregate that the Event belongs to
+// GetAggregateID is the AggregateID of the Aggregate that the Event belongs to
 func (e *Event) GetAggregateID() string {
 	return e.AggregateID
 }
@@ -121,7 +121,7 @@ func (e *Event) SetVersion(aggregateVersion uint64) {
 	e.Version = aggregateVersion
 }
 
-// GetMetadata is app-specific metadata such as request ID, originating user etc.
+// GetMetadata is app-specific metadata such as request AggregateID, originating user etc.
 func (e *Event) GetMetadata() []byte {
 	return e.Metadata
 }

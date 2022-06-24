@@ -116,6 +116,8 @@ func (a *app) Run() error {
 	eventStore := es.NewPgEventStore(a.log, a.cfg.EventSourcingConfig, a.pgxConn, eventBus, domain.NewEventSerializer())
 	a.bs = service.NewBankAccountService(a.log, eventStore)
 
+	//bankAccountMongoSubscription := bankAccountMongoSubscription.NewBankAccountMongoSubscription(a.log, &a.cfg, a.bs)
+
 	closeGrpcServer, grpcServer, err := a.newBankAccountGrpcServer()
 	if err != nil {
 		cancel()

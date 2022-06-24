@@ -38,8 +38,7 @@ func (e *kafkaEventsBus) ProcessEvents(ctx context.Context, events []Event) erro
 
 	eventsBytes, err := serializer.Marshal(events)
 	if err != nil {
-		tracing.TraceErr(span, err)
-		return errors.Wrap(err, "serializer.Marshal")
+		return tracing.TraceWithErr(span, errors.Wrap(err, "serializer.Marshal"))
 	}
 
 	return e.producer.PublishMessage(ctx, kafka.Message{
