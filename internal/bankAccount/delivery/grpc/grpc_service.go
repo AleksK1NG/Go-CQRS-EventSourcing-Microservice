@@ -6,6 +6,7 @@ import (
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/internal/bankAccount/commands"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/internal/bankAccount/queries"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/internal/bankAccount/service"
+	"github.com/AleksK1NG/go-cqrs-eventsourcing/internal/mappers"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/grpc_errors"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/logger"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/tracing"
@@ -93,23 +94,13 @@ func (g *grpcService) GetById(ctx context.Context, request *bankAccountService.G
 	query := queries.GetBankAccountByIDQuery{AggregateID: request.GetId()}
 	bankAccount, err := g.bs.Queries.GetBankAccountByID.Handle(ctx, query)
 	if err != nil {
-		g.log.Errorf("(ChangeEmail.Handle) err: %v", err)
+		g.log.Errorf("(GetBankAccountByID.Handle) err: %v", err)
 		return nil, grpc_errors.ErrResponse(tracing.TraceWithErr(span, err))
 	}
 
 	g.log.Infof("GetById bankAccount: %+v", bankAccount)
 
-	return &bankAccountService.GetByIdResponse{
-		BankAccount: &bankAccountService.BankAccount{
-			Id:        bankAccount.AggregateID,
-			Email:     bankAccount.Email,
-			FirstName: bankAccount.FirstName,
-			LastName:  bankAccount.LastName,
-			Address:   bankAccount.Address,
-			Status:    bankAccount.Address,
-			Balance:   bankAccount.Balance,
-		},
-	}, nil
+	return &bankAccountService.GetByIdResponse{BankAccount: mappers.BankAccountToProto(bankAccount)}, nil
 }
 
 func (g *grpcService) GetBankAccountByStatus(ctx context.Context, request *bankAccountService.GetBankAccountByStatusRequest) (*bankAccountService.GetBankAccountByStatusResponse, error) {

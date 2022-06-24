@@ -60,6 +60,8 @@ const (
 	Bcrypt          = "bcrypt"
 	SQLState        = "sqlstate"
 
+	MongoAggregateID = "aggregateID"
+
 	MongoProjection   = "(MongoDB Projection)"
 	ElasticProjection = "(Elastic Projection)"
 
@@ -74,7 +76,7 @@ const (
 	BankAccountIndex = "BankAccountId"
 	BankAccountId    = "BankAccountId"
 
-	KafkaHeaders = "{kafkaHeaders}"
+	KafkaHeaders = "kafkaHeaders"
 
 	Tcp = "tcp"
 )
