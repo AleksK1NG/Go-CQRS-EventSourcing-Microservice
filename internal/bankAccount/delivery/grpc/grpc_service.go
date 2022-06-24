@@ -101,7 +101,7 @@ func (g *grpcService) GetById(ctx context.Context, request *bankAccountService.G
 
 	return &bankAccountService.GetByIdResponse{
 		BankAccount: &bankAccountService.BankAccount{
-			Id:        bankAccount.ID,
+			Id:        bankAccount.AggregateID,
 			Email:     bankAccount.Email,
 			FirstName: bankAccount.FirstName,
 			LastName:  bankAccount.LastName,

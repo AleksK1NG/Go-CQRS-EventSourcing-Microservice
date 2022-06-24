@@ -130,10 +130,6 @@ func (a *AggregateBase) GetChanges() []any {
 func (a *AggregateBase) Load(events []any) error {
 
 	for _, evt := range events {
-		//if evt.GetAggregateID() != a.GetID() || evt.GetAggregateType() != a.GetType() {
-		//	return ErrInvalidAggregate
-		//}
-
 		if err := a.when(evt); err != nil {
 			return err
 		}
@@ -146,29 +142,18 @@ func (a *AggregateBase) Load(events []any) error {
 
 // Apply push event to aggregate uncommitted events using When method
 func (a *AggregateBase) Apply(event any) error {
-	//if err := a.validateEvent(event); err != nil {
-	//	return err
-	//}
-	//
-	//event.SetAggregateType(a.GetType())
 
 	if err := a.when(event); err != nil {
 		return err
 	}
 
 	a.Version++
-	//event.SetVersion(a.GetVersion())
 	a.Changes = append(a.Changes, event)
 	return nil
 }
 
 // RaiseEvent push event to aggregate applied events using When method, used for load directly from eventstore
 func (a *AggregateBase) RaiseEvent(event any) error {
-	//if err := a.validateEvent(event); err != nil {
-	//	return err
-	//}
-	//
-	//event.SetAggregateType(a.GetType())
 
 	if err := a.when(event); err != nil {
 		return err
@@ -184,7 +169,7 @@ func (a *AggregateBase) ToSnapshot() {
 }
 
 func (a *AggregateBase) String() string {
-	return fmt.Sprintf("(Aggregate) ID: {%s}, Type: {%s}, Version: {%v}, Changes: {%d}",
+	return fmt.Sprintf("(Aggregate) AggregateID: %s, Type: %s, Version: %v, Changes: %d",
 		a.GetID(),
 		string(a.GetType()),
 		a.GetVersion(),

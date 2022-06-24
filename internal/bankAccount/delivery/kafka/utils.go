@@ -1,0 +1,26 @@
+package kafka
+
+import (
+	"context"
+	"github.com/segmentio/kafka-go"
+)
+
+func (s *bankAccountMongoSubscription) commitMessage(ctx context.Context, r *kafka.Reader, m kafka.Message) {
+	if err := r.CommitMessages(ctx, m); err != nil {
+		s.log.Errorf("(bankAccountMongoSubscription) [CommitMessages] err: %v", err)
+		return
+	}
+	s.log.KafkaLogCommittedMessage(m.Topic, m.Partition, m.Offset)
+}
+
+func (s *bankAccountMongoSubscription) commitErrMessage(ctx context.Context, r *kafka.Reader, m kafka.Message) {
+	if err := r.CommitMessages(ctx, m); err != nil {
+		s.log.Errorf("(bankAccountMongoSubscription) [CommitMessages] err: %v", err)
+		return
+	}
+	s.log.KafkaLogCommittedMessage(m.Topic, m.Partition, m.Offset)
+}
+
+func (s *bankAccountMongoSubscription) logProcessMessage(m kafka.Message, workerID int) {
+	s.log.KafkaProcessMessage(m.Topic, m.Partition, m.Value, workerID, m.Offset, m.Time)
+}

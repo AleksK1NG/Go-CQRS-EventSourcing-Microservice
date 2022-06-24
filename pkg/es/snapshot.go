@@ -15,7 +15,7 @@ type Snapshot struct {
 }
 
 func (s *Snapshot) String() string {
-	return fmt.Sprintf("ID: {%s}, Type: {%s}, StateSize: {%d}, Version: {%d},",
+	return fmt.Sprintf("AggregateID: {%s}, Type: {%s}, StateSize: {%d}, Version: {%d},",
 		s.ID,
 		string(s.Type),
 		len(s.State),
