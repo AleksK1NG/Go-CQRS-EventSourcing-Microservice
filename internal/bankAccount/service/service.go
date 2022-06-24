@@ -20,7 +20,9 @@ func NewBankAccountService(log logger.Logger, es es.AggregateStore) *BankAccount
 		commands.NewCreateBankAccountCmdHandler(log, es),
 	)
 
-	newBankAccountQueries := queries.NewBankAccountQueries(queries.NewGetBankAccountByIDQuery(log, es))
+	newBankAccountQueries := queries.NewBankAccountQueries(
+		queries.NewGetBankAccountByIDQuery(log, es),
+	)
 
 	return &BankAccountService{Commands: bankAccountCommands, Queries: newBankAccountQueries}
 }

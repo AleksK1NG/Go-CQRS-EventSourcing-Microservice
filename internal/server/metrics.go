@@ -7,7 +7,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-func (s *server) runMetrics(cancel context.CancelFunc) {
+func (a *app) runMetrics(cancel context.CancelFunc) {
 	metricsServer := echo.New()
 	go func() {
 		metricsServer.Use(middleware.RecoverWithConfig(middleware.RecoverConfig{
@@ -15,10 +15,10 @@ func (s *server) runMetrics(cancel context.CancelFunc) {
 			DisablePrintStack: true,
 			DisableStackAll:   true,
 		}))
-		metricsServer.GET(s.cfg.Probes.PrometheusPath, echo.WrapHandler(promhttp.Handler()))
-		s.log.Infof("Metrics server is running on port: {%s}", s.cfg.Probes.PrometheusPort)
-		if err := metricsServer.Start(s.cfg.Probes.PrometheusPort); err != nil {
-			s.log.Errorf("metricsServer.Start: {%v}", err)
+		metricsServer.GET(a.cfg.Probes.PrometheusPath, echo.WrapHandler(promhttp.Handler()))
+		a.log.Infof("Metrics app is running on port: %s", a.cfg.Probes.PrometheusPort)
+		if err := metricsServer.Start(a.cfg.Probes.PrometheusPort); err != nil {
+			a.log.Errorf("metricsServer.Start: {%v}", err)
 			cancel()
 		}
 	}()

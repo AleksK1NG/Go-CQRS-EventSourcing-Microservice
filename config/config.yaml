@@ -58,7 +58,7 @@ mongo:
   password: admin
   db: bankAccounts
 mongoCollections:
-  orders: bankAccounts
+  bankAccounts: bankAccounts
 kafkaPublisherConfig:
   topic: event_created
   topicPrefix: eventstore

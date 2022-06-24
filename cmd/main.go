@@ -22,5 +22,5 @@ func main() {
 	appLogger.InitLogger()
 	appLogger.Named(server.GetMicroserviceName(*cfg))
 	appLogger.Infof("CFG: %+v", cfg)
-	appLogger.Fatal(server.NewServer(appLogger, *cfg).Run())
+	appLogger.Fatal(server.NewApp(appLogger, *cfg).Run())
 }

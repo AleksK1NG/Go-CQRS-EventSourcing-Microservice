@@ -17,9 +17,9 @@ import (
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 )
 
-func (s *server) newBankAccountGrpcServer() (func() error, *grpc.Server, error) {
+func (a *app) newBankAccountGrpcServer() (func() error, *grpc.Server, error) {
 
-	l, err := net.Listen(constants.Tcp, s.cfg.GRPC.Port)
+	l, err := net.Listen(constants.Tcp, a.cfg.GRPC.Port)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "net.Listen")
 	}
@@ -35,22 +35,22 @@ func (s *server) newBankAccountGrpcServer() (func() error, *grpc.Server, error) 
 			grpc_ctxtags.UnaryServerInterceptor(),
 			grpc_prometheus.UnaryServerInterceptor,
 			grpc_recovery.UnaryServerInterceptor(),
-			s.im.Logger,
+			a.im.Logger,
 		),
 		),
 	)
 
-	bankAccountGrpcService := grpc2.NewGrpcService(s.log, &s.cfg, s.bs)
+	bankAccountGrpcService := grpc2.NewGrpcService(a.log, &a.cfg, a.bs)
 	bankAccountService.RegisterBankAccountServiceServer(grpcServer, bankAccountGrpcService)
 	grpc_prometheus.Register(grpcServer)
 
-	if s.cfg.GRPC.Development {
+	if a.cfg.GRPC.Development {
 		reflection.Register(grpcServer)
 	}
 
 	go func() {
-		s.log.Infof("(%s gRPC server is listening) on port: %s, server info: %+v", GetMicroserviceName(s.cfg), s.cfg.GRPC.Port, grpcServer.GetServiceInfo())
-		s.log.Errorf("(newAssignmentGrpcServer) err: %v", grpcServer.Serve(l))
+		a.log.Infof("(%a gRPC app is listening) on port: %a, app info: %+v", GetMicroserviceName(a.cfg), a.cfg.GRPC.Port, grpcServer.GetServiceInfo())
+		a.log.Errorf("(newAssignmentGrpcServer) err: %v", grpcServer.Serve(l))
 	}()
 
 	return l.Close, grpcServer, nil

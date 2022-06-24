@@ -34,7 +34,7 @@ const (
 	gRPCTime          = 10
 )
 
-type server struct {
+type app struct {
 	log           logger.Logger
 	cfg           config.Config
 	im            interceptors.InterceptorManager
@@ -52,17 +52,17 @@ type server struct {
 	bs            *service.BankAccountService
 }
 
-func NewServer(log logger.Logger, cfg config.Config) *server {
-	return &server{log: log, cfg: cfg, v: validator.New(), doneCh: make(chan struct{}), echo: echo.New()}
+func NewApp(log logger.Logger, cfg config.Config) *app {
+	return &app{log: log, cfg: cfg, v: validator.New(), doneCh: make(chan struct{}), echo: echo.New()}
 }
 
-func (s *server) Run() error {
+func (a *app) Run() error {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
 	defer cancel()
 
 	// enable tracing
-	if s.cfg.Jaeger.Enable {
-		tracer, closer, err := tracing.NewJaegerTracer(s.cfg.Jaeger)
+	if a.cfg.Jaeger.Enable {
+		tracer, closer, err := tracing.NewJaegerTracer(a.cfg.Jaeger)
 		if err != nil {
 			return err
 		}
@@ -70,51 +70,53 @@ func (s *server) Run() error {
 		opentracing.SetGlobalTracer(tracer)
 	}
 
-	s.metrics = metrics.NewESMicroserviceMetrics(s.cfg)
-	s.im = interceptors.NewInterceptorManager(s.log, s.getGrpcMetricsCb())
-	s.mw = middlewares.NewMiddlewareManager(s.log, s.cfg, s.getHttpMetricsCb())
+	a.metrics = metrics.NewESMicroserviceMetrics(a.cfg)
+	a.im = interceptors.NewInterceptorManager(a.log, a.getGrpcMetricsCb())
+	a.mw = middlewares.NewMiddlewareManager(a.log, a.cfg, a.getHttpMetricsCb())
 
 	// connect postgres
-	if err := s.connectPostgres(ctx); err != nil {
+	if err := a.connectPostgres(ctx); err != nil {
 		return err
 	}
-	defer s.pgxConn.Close()
+	defer a.pgxConn.Close()
 
 	// connect mongo
-	mongoDBConn, err := mongodb.NewMongoDBConn(ctx, s.cfg.Mongo)
+	mongoDBConn, err := mongodb.NewMongoDBConn(ctx, a.cfg.Mongo)
 	if err != nil {
 		return errors.Wrap(err, "NewMongoDBConn")
 	}
-	s.mongoClient = mongoDBConn
+	a.mongoClient = mongoDBConn
 	defer mongoDBConn.Disconnect(ctx) // nolint: errcheck
-	s.log.Infof("(Mongo connected) SessionsInProgress: %v", mongoDBConn.NumberSessionsInProgress())
+	a.log.Infof("(Mongo connected) SessionsInProgress: %v", mongoDBConn.NumberSessionsInProgress())
+
+	a.initMongoDBCollections(ctx)
 
 	// connect elastic
-	if err := s.initElasticClient(ctx); err != nil {
-		s.log.Errorf("(initElasticClient) err: %v", err)
+	if err := a.initElasticClient(ctx); err != nil {
+		a.log.Errorf("(initElasticClient) err: %v", err)
 		return err
 	}
 
 	// connect kafka brokers
-	if err := s.connectKafkaBrokers(ctx); err != nil {
-		return errors.Wrap(err, "s.connectKafkaBrokers")
+	if err := a.connectKafkaBrokers(ctx); err != nil {
+		return errors.Wrap(err, "a.connectKafkaBrokers")
 	}
-	defer s.kafkaConn.Close() // nolint: errcheck
+	defer a.kafkaConn.Close() // nolint: errcheck
 
 	// init kafka topics
-	if s.cfg.Kafka.InitTopics {
-		s.initKafkaTopics(ctx)
+	if a.cfg.Kafka.InitTopics {
+		a.initKafkaTopics(ctx)
 	}
 
 	// kafka producer
-	kafkaProducer := kafkaClient.NewProducer(s.log, s.cfg.Kafka.Brokers)
+	kafkaProducer := kafkaClient.NewProducer(a.log, a.cfg.Kafka.Brokers)
 	defer kafkaProducer.Close() // nolint: errcheck
 
-	eventBus := es.NewKafkaEventsBus(kafkaProducer, s.cfg.KafkaPublisherConfig)
-	eventStore := es.NewPgEventStore(s.log, s.cfg.EventSourcingConfig, s.pgxConn, eventBus, domain.NewEventSerializer())
-	s.bs = service.NewBankAccountService(s.log, eventStore)
+	eventBus := es.NewKafkaEventsBus(kafkaProducer, a.cfg.KafkaPublisherConfig)
+	eventStore := es.NewPgEventStore(a.log, a.cfg.EventSourcingConfig, a.pgxConn, eventBus, domain.NewEventSerializer())
+	a.bs = service.NewBankAccountService(a.log, eventStore)
 
-	closeGrpcServer, grpcServer, err := s.newBankAccountGrpcServer()
+	closeGrpcServer, grpcServer, err := a.newBankAccountGrpcServer()
 	if err != nil {
 		cancel()
 		return err
@@ -122,29 +124,29 @@ func (s *server) Run() error {
 	defer closeGrpcServer() // nolint: errcheck
 
 	// run metrics and health check
-	s.runMetrics(cancel)
-	s.runHealthCheck(ctx)
+	a.runMetrics(cancel)
+	a.runHealthCheck(ctx)
 
 	go func() {
-		if err := s.runHttpServer(); err != nil {
-			s.log.Errorf("(s.runHttpServer) err: %v", err)
+		if err := a.runHttpServer(); err != nil {
+			a.log.Errorf("(a.runHttpServer) err: %v", err)
 			cancel()
 		}
 	}()
-	s.log.Infof("%s is listening on PORT: %s", GetMicroserviceName(s.cfg), s.cfg.Http.Port)
+	a.log.Infof("%a is listening on PORT: %a", GetMicroserviceName(a.cfg), a.cfg.Http.Port)
 
 	<-ctx.Done()
-	s.waitShootDown(waitShotDownDuration)
+	a.waitShootDown(waitShotDownDuration)
 	grpcServer.GracefulStop()
-	if err := s.shutDownHealthCheckServer(ctx); err != nil {
-		s.log.Warnf("(shutDownHealthCheckServer) err: %v", err)
+	if err := a.shutDownHealthCheckServer(ctx); err != nil {
+		a.log.Warnf("(shutDownHealthCheckServer) err: %v", err)
 	}
 
-	if err := s.echo.Shutdown(ctx); err != nil {
-		s.log.Warnf("(Shutdown) err: %v", err)
+	if err := a.echo.Shutdown(ctx); err != nil {
+		a.log.Warnf("(Shutdown) err: %v", err)
 	}
 
-	<-s.doneCh
-	s.log.Infof("%s server exited properly", GetMicroserviceName(s.cfg))
+	<-a.doneCh
+	a.log.Infof("%a app exited properly", GetMicroserviceName(a.cfg))
 	return nil
 }

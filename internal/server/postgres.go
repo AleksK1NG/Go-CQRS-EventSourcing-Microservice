@@ -10,26 +10,26 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (s *server) connectPostgres(ctx context.Context) error {
+func (a *app) connectPostgres(ctx context.Context) error {
 
 	retryOptions := []retry.Option{
-		retry.Attempts(s.cfg.Timeouts.PostgresInitRetryCount),
-		retry.Delay(time.Duration(s.cfg.Timeouts.PostgresInitMilliseconds) * time.Millisecond),
+		retry.Attempts(a.cfg.Timeouts.PostgresInitRetryCount),
+		retry.Delay(time.Duration(a.cfg.Timeouts.PostgresInitMilliseconds) * time.Millisecond),
 		retry.DelayType(retry.BackOffDelay),
 		retry.LastErrorOnly(true),
 		retry.Context(ctx),
 		retry.OnRetry(func(n uint, err error) {
-			s.log.Errorf("retry connect postgres err: %v", err)
+			a.log.Errorf("retry connect postgres err: %v", err)
 		}),
 	}
 
 	return retry.Do(func() error {
-		pgxConn, err := postgres.NewPgxConn(s.cfg.Postgresql)
+		pgxConn, err := postgres.NewPgxConn(a.cfg.Postgresql)
 		if err != nil {
 			return errors.Wrap(err, "postgresql.NewPgxConn")
 		}
-		s.pgxConn = pgxConn
-		s.log.Infof("(postgres connected) poolStat: %s", utils.GetPostgresStats(s.pgxConn.Stat()))
+		a.pgxConn = pgxConn
+		a.log.Infof("(postgres connected) poolStat: %a", utils.GetPostgresStats(a.pgxConn.Stat()))
 		return nil
 	}, retryOptions...)
 }
