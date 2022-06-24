@@ -61,7 +61,7 @@ func (s *eventSerializer) SerializeEvent(aggregate es.Aggregate, event any) (es.
 			Timestamp:     time.Now().UTC(),
 		}, nil
 	default:
-		return es.Event{}, errors.Wrapf(ErrInvalidEvent, "aggregateID: %s", aggregate.GetID())
+		return es.Event{}, errors.Wrapf(ErrInvalidEvent, "aggregateID: %s, type: %T", aggregate.GetID(), event)
 	}
 
 }

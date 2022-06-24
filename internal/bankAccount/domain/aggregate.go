@@ -46,7 +46,7 @@ func (a *BankAccountAggregate) When(event any) error {
 		a.onEmailChanged(evt)
 		return nil
 	default:
-		return bankAccountErrors.ErrUnknownEventType
+		return errors.Wrapf(bankAccountErrors.ErrUnknownEventType, "event: %+v", event)
 	}
 }
 
@@ -77,7 +77,14 @@ func (a *BankAccountAggregate) CreateNewBankAccount(ctx context.Context, email, 
 	defer span.Finish()
 	span.LogFields(log.String("AggregateID", a.GetID()))
 
-	event := events.NewBankAccountCreatedEventV1(email, address, firstName, lastName, status, balance)
+	event := &events.BankAccountCreatedEventV1{
+		Email:     email,
+		Address:   address,
+		FirstName: firstName,
+		LastName:  lastName,
+		Balance:   balance,
+		Status:    status,
+	}
 
 	metaDataBytes, err := serializer.Marshal(tracing.ExtractTextMapCarrier(span.Context()))
 	if err != nil {
@@ -93,7 +100,10 @@ func (a *BankAccountAggregate) DepositBalance(ctx context.Context, amount float6
 	defer span.Finish()
 	span.LogFields(log.String("AggregateID", a.GetID()))
 
-	event := events.NewBalanceDepositedEventV1(amount, paymentID)
+	event := &events.BalanceDepositedEventV1{
+		Amount:    amount,
+		PaymentID: paymentID,
+	}
 
 	metaDataBytes, err := serializer.Marshal(tracing.ExtractTextMapCarrier(span.Context()))
 	if err != nil {
@@ -109,7 +119,7 @@ func (a *BankAccountAggregate) ChangeEmail(ctx context.Context, email string) er
 	defer span.Finish()
 	span.LogFields(log.String("AggregateID", a.GetID()))
 
-	event := events.NewEmailChangedEventV1(email)
+	event := &events.EmailChangedEventV1{Email: email}
 
 	metaDataBytes, err := serializer.Marshal(tracing.ExtractTextMapCarrier(span.Context()))
 	if err != nil {

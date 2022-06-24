@@ -17,7 +17,7 @@ type BankAccountCreatedEventV1 struct {
 }
 
 func NewBankAccountCreatedEventV1(email, address, firstName, lastName, status string, balance float64) *BankAccountCreatedEventV1 {
-	bankAccountCreatedEvent := BankAccountCreatedEventV1{
+	return &BankAccountCreatedEventV1{
 		Email:     email,
 		Address:   address,
 		FirstName: firstName,
@@ -25,5 +25,4 @@ func NewBankAccountCreatedEventV1(email, address, firstName, lastName, status st
 		Balance:   balance,
 		Status:    status,
 	}
-	return &bankAccountCreatedEvent
 }

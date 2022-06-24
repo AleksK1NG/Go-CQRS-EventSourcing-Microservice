@@ -13,6 +13,5 @@ type BalanceDepositedEventV1 struct {
 }
 
 func NewBalanceDepositedEventV1(amount float64, paymentID string) *BalanceDepositedEventV1 {
-	balanceDepositedEvent := BalanceDepositedEventV1{Amount: amount, PaymentID: paymentID}
-	return &balanceDepositedEvent
+	return &BalanceDepositedEventV1{Amount: amount, PaymentID: paymentID}
 }
