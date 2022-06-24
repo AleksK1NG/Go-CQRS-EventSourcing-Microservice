@@ -10,21 +10,26 @@ import (
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/logger"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/tracing"
 	"github.com/opentracing/opentracing-go"
+	"github.com/pkg/errors"
 	"github.com/segmentio/kafka-go"
 )
 
 type bankAccountMongoSubscription struct {
-	log logger.Logger
-	cfg *config.Config
-	bs  *service.BankAccountService
+	log        logger.Logger
+	cfg        *config.Config
+	bs         *service.BankAccountService
+	mp         es.Projection
+	serializer es.Serializer
 }
 
 func NewBankAccountMongoSubscription(
 	log logger.Logger,
 	cfg *config.Config,
 	bs *service.BankAccountService,
+	mp es.Projection,
+	serializer es.Serializer,
 ) *bankAccountMongoSubscription {
-	return &bankAccountMongoSubscription{log: log, cfg: cfg, bs: bs}
+	return &bankAccountMongoSubscription{log: log, cfg: cfg, bs: bs, mp: mp, serializer: serializer}
 }
 
 func (s *bankAccountMongoSubscription) ProcessMessagesErrGroup(ctx context.Context, r *kafka.Reader, workerID int) error {
@@ -74,6 +79,16 @@ func (s *bankAccountMongoSubscription) handleBankAccountEvents(ctx context.Conte
 func (s *bankAccountMongoSubscription) handle(ctx context.Context, r *kafka.Reader, m kafka.Message, event es.Event) error {
 	span, ctx := opentracing.StartSpanFromContext(ctx, "bankAccountMongoSubscription.handle")
 	defer span.Finish()
+
+	deserializedEvent, err := s.serializer.DeserializeEvent(event)
+	if err != nil {
+		return tracing.TraceWithErr(span, errors.Wrapf(err, "serializer.DeserializeEvent type: %s, aggregateID: %s", event.GetEventType(), event.GetAggregateID()))
+	}
+
+	err = s.mp.When(ctx, deserializedEvent)
+	if err != nil {
+		return tracing.TraceWithErr(span, errors.Wrapf(err, "When type: %s, aggregateID: %s", event.GetEventType(), event.GetAggregateID()))
+	}
 
 	s.log.Infof("MONGO PROJECTION HANDLE EVENT: %s", event.String())
 	return nil
