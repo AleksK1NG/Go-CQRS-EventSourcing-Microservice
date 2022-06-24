@@ -4,70 +4,71 @@ import (
 	"context"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/constants"
 	"github.com/heptiolabs/healthcheck"
+	"github.com/pkg/errors"
 	"net/http"
 	"time"
 )
 
-func (s *server) runHealthCheck(ctx context.Context) {
+func (a *app) runHealthCheck(ctx context.Context) {
 	health := healthcheck.NewHandler()
 
 	mux := http.NewServeMux()
-	s.ps = &http.Server{
+	a.ps = &http.Server{
 		Handler:      mux,
-		Addr:         s.cfg.Probes.Port,
+		Addr:         a.cfg.Probes.Port,
 		WriteTimeout: writeTimeout,
 		ReadTimeout:  readTimeout,
 	}
-	mux.HandleFunc(s.cfg.Probes.LivenessPath, health.LiveEndpoint)
-	mux.HandleFunc(s.cfg.Probes.ReadinessPath, health.ReadyEndpoint)
+	mux.HandleFunc(a.cfg.Probes.LivenessPath, health.LiveEndpoint)
+	mux.HandleFunc(a.cfg.Probes.ReadinessPath, health.ReadyEndpoint)
 
-	s.configureHealthCheckEndpoints(ctx, health)
+	a.configureHealthCheckEndpoints(ctx, health)
 
 	go func() {
-		s.log.Infof("(%s) Kubernetes probes listening on port: {%s}", s.cfg.ServiceName, s.cfg.Probes.Port)
-		if err := s.ps.ListenAndServe(); err != nil {
-			s.log.Errorf("(ListenAndServe) err: {%v}", err)
+		a.log.Infof("(%s) Kubernetes probes listening on port: %s", a.cfg.ServiceName, a.cfg.Probes.Port)
+		if err := a.ps.ListenAndServe(); err != nil {
+			a.log.Errorf("(ListenAndServe) err: {%v}", err)
 		}
 	}()
 }
 
-func (s *server) configureHealthCheckEndpoints(ctx context.Context, health healthcheck.Handler) {
+func (a *app) configureHealthCheckEndpoints(ctx context.Context, health healthcheck.Handler) {
 
 	health.AddReadinessCheck(constants.MongoDB, healthcheck.AsyncWithContext(ctx, func() error {
-		if err := s.mongoClient.Ping(ctx, nil); err != nil {
-			s.log.Warnf("(MongoDB Readiness Check) err: {%v}", err)
+		if err := a.mongoClient.Ping(ctx, nil); err != nil {
+			a.log.Warnf("(MongoDB Readiness Check) err: %v", err)
 			return err
 		}
 		return nil
-	}, time.Duration(s.cfg.Probes.CheckIntervalSeconds)*time.Second))
+	}, time.Duration(a.cfg.Probes.CheckIntervalSeconds)*time.Second))
 
 	health.AddLivenessCheck(constants.MongoDB, healthcheck.AsyncWithContext(ctx, func() error {
-		if err := s.mongoClient.Ping(ctx, nil); err != nil {
-			s.log.Warnf("(MongoDB Liveness Check) err: {%v}", err)
+		if err := a.mongoClient.Ping(ctx, nil); err != nil {
+			a.log.Warnf("(MongoDB Liveness Check) err: {%v}", err)
 			return err
 		}
 		return nil
-	}, time.Duration(s.cfg.Probes.CheckIntervalSeconds)*time.Second))
+	}, time.Duration(a.cfg.Probes.CheckIntervalSeconds)*time.Second))
 
-	//health.AddReadinessCheck(constants.ElasticSearch, healthcheck.AsyncWithContext(ctx, func() error {
-	//	_, _, err := s.elasticClient.Ping(s.cfg.Elastic.URL).Do(ctx)
-	//	if err != nil {
-	//		s.log.Warnf("(ElasticSearch Readiness Check) err: {%v}", err)
-	//		return errors.Wrap(err, "client.Ping")
-	//	}
-	//	return nil
-	//}, time.Duration(s.cfg.Probes.CheckIntervalSeconds)*time.Second))
-	//
-	//health.AddLivenessCheck(constants.ElasticSearch, healthcheck.AsyncWithContext(ctx, func() error {
-	//	_, _, err := s.elasticClient.Ping(s.cfg.Elastic.URL).Do(ctx)
-	//	if err != nil {
-	//		s.log.Warnf("(ElasticSearch Liveness Check) err: {%v}", err)
-	//		return errors.Wrap(err, "client.Ping")
-	//	}
-	//	return nil
-	//}, time.Duration(s.cfg.Probes.CheckIntervalSeconds)*time.Second))
+	health.AddReadinessCheck(constants.ElasticSearch, healthcheck.AsyncWithContext(ctx, func() error {
+		_, _, err := a.elasticClient.Ping(a.cfg.Elastic.URL).Do(ctx)
+		if err != nil {
+			a.log.Warnf("(ElasticSearch Readiness Check) err: {%v}", err)
+			return errors.Wrap(err, "client.Ping")
+		}
+		return nil
+	}, time.Duration(a.cfg.Probes.CheckIntervalSeconds)*time.Second))
+
+	health.AddLivenessCheck(constants.ElasticSearch, healthcheck.AsyncWithContext(ctx, func() error {
+		_, _, err := a.elasticClient.Ping(a.cfg.Elastic.URL).Do(ctx)
+		if err != nil {
+			a.log.Warnf("(ElasticSearch Liveness Check) err: {%v}", err)
+			return errors.Wrap(err, "client.Ping")
+		}
+		return nil
+	}, time.Duration(a.cfg.Probes.CheckIntervalSeconds)*time.Second))
 }
 
-func (s *server) shutDownHealthCheckServer(ctx context.Context) error {
-	return s.ps.Shutdown(ctx)
+func (a *app) shutDownHealthCheckServer(ctx context.Context) error {
+	return a.ps.Shutdown(ctx)
 }

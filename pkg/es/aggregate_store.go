@@ -88,13 +88,13 @@ func (p *pgEventStore) Save(ctx context.Context, aggregate Aggregate) (err error
 	}
 
 	if err := p.saveEventsTx(ctx, tx, events); err != nil {
-		return err
+		return tracing.TraceWithErr(span, errors.Wrap(err, "saveEventsTx"))
 	}
 
 	if aggregate.GetVersion()%p.cfg.SnapshotFrequency == 0 {
 		aggregate.ToSnapshot()
 		if err := p.saveSnapshotTx(ctx, tx, aggregate); err != nil {
-			return err
+			return tracing.TraceWithErr(span, errors.Wrap(err, "saveSnapshotTx"))
 		}
 	}
 

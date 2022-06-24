@@ -17,37 +17,37 @@ const (
 	gzipLevel      = 5
 )
 
-func (s *server) runHttpServer() error {
-	s.mapRoutes()
+func (a *app) runHttpServer() error {
+	a.mapRoutes()
 
-	s.echo.Server.ReadTimeout = readTimeout
-	s.echo.Server.WriteTimeout = writeTimeout
-	s.echo.Server.MaxHeaderBytes = maxHeaderBytes
+	a.echo.Server.ReadTimeout = readTimeout
+	a.echo.Server.WriteTimeout = writeTimeout
+	a.echo.Server.MaxHeaderBytes = maxHeaderBytes
 
-	return s.echo.Start(s.cfg.Http.Port)
+	return a.echo.Start(a.cfg.Http.Port)
 }
 
-func (s *server) mapRoutes() {
+func (a *app) mapRoutes() {
 	//docs.SwaggerInfo_swagger.Version = "1.0"
 	//docs.SwaggerInfo_swagger.Title = "EventSourcing Microservice"
 	//docs.SwaggerInfo_swagger.Description = "EventSourcing CQRS Microservice."
 	//docs.SwaggerInfo_swagger.Version = "1.0"
 	//docs.SwaggerInfo_swagger.BasePath = "/api/v1"
 
-	//s.echo.GET("/swagger/*", echoSwagger.WrapHandler)
+	//a.echo.GET("/swagger/*", echoSwagger.WrapHandler)
 
-	s.echo.Use(s.mw.RequestLoggerMiddleware)
-	s.echo.Use(middleware.RecoverWithConfig(middleware.RecoverConfig{
+	a.echo.Use(a.mw.RequestLoggerMiddleware)
+	a.echo.Use(middleware.RecoverWithConfig(middleware.RecoverConfig{
 		StackSize:         stackSize,
 		DisablePrintStack: false,
 		DisableStackAll:   false,
 	}))
-	s.echo.Use(middleware.RequestID())
-	s.echo.Use(middleware.GzipWithConfig(middleware.GzipConfig{
+	a.echo.Use(middleware.RequestID())
+	a.echo.Use(middleware.GzipWithConfig(middleware.GzipConfig{
 		Level: gzipLevel,
 		Skipper: func(c echo.Context) bool {
 			return strings.Contains(c.Request().URL.Path, "swagger")
 		},
 	}))
-	s.echo.Use(middleware.BodyLimit(bodyLimit))
+	a.echo.Use(middleware.BodyLimit(bodyLimit))
 }

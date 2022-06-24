@@ -6,24 +6,24 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (s *server) initElasticClient(ctx context.Context) error {
-	elasticClient, err := elasticsearch.NewElasticClient(s.cfg.Elastic)
+func (a *app) initElasticClient(ctx context.Context) error {
+	elasticClient, err := elasticsearch.NewElasticClient(a.cfg.Elastic)
 	if err != nil {
 		return err
 	}
-	s.elasticClient = elasticClient
+	a.elasticClient = elasticClient
 
-	info, code, err := s.elasticClient.Ping(s.cfg.Elastic.URL).Do(ctx)
+	info, code, err := a.elasticClient.Ping(a.cfg.Elastic.URL).Do(ctx)
 	if err != nil {
 		return errors.Wrap(err, "client.Ping")
 	}
-	s.log.Infof("Elasticsearch returned with code %d and version %s", code, info.Version.Number)
+	a.log.Infof("Elasticsearch returned with code %d and version %a", code, info.Version.Number)
 
-	esVersion, err := s.elasticClient.ElasticsearchVersion(s.cfg.Elastic.URL)
+	esVersion, err := a.elasticClient.ElasticsearchVersion(a.cfg.Elastic.URL)
 	if err != nil {
 		return errors.Wrap(err, "client.ElasticsearchVersion")
 	}
-	s.log.Infof("Elasticsearch version %s", esVersion)
+	a.log.Infof("Elasticsearch version %a", esVersion)
 
 	return nil
 }
