@@ -5,6 +5,7 @@ import (
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/config"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/internal/bankAccount/domain"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/internal/bankAccount/service"
+	"github.com/AleksK1NG/go-cqrs-eventsourcing/internal/mappers"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/es"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/es/serializer"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/logger"
@@ -20,6 +21,8 @@ type bankAccountMongoSubscription struct {
 	bs         *service.BankAccountService
 	mp         es.Projection
 	serializer es.Serializer
+	mr         domain.MongoRepository
+	as         es.AggregateStore
 }
 
 func NewBankAccountMongoSubscription(
@@ -28,8 +31,10 @@ func NewBankAccountMongoSubscription(
 	bs *service.BankAccountService,
 	mp es.Projection,
 	serializer es.Serializer,
+	mr domain.MongoRepository,
+	as es.AggregateStore,
 ) *bankAccountMongoSubscription {
-	return &bankAccountMongoSubscription{log: log, cfg: cfg, bs: bs, mp: mp, serializer: serializer}
+	return &bankAccountMongoSubscription{log: log, cfg: cfg, bs: bs, mp: mp, serializer: serializer, mr: mr, as: as}
 }
 
 func (s *bankAccountMongoSubscription) ProcessMessagesErrGroup(ctx context.Context, r *kafka.Reader, workerID int) error {
@@ -82,9 +87,44 @@ func (s *bankAccountMongoSubscription) handle(ctx context.Context, r *kafka.Read
 
 	err := s.mp.When(ctx, event)
 	if err != nil {
+		s.log.Errorf("MongoSubscription When err: %v", err)
+
+		recreateErr := s.recreateProjection(ctx, event)
+		if err != nil {
+			return tracing.TraceWithErr(span, errors.Wrapf(recreateErr, "recreateProjection err: %v", err))
+		}
+
+		s.log.Infof("[Mongo projection recreated] commit aggregateID: %s", event.GetAggregateID())
+		s.commitErrMessage(ctx, r, m)
 		return tracing.TraceWithErr(span, errors.Wrapf(err, "When type: %s, aggregateID: %s", event.GetEventType(), event.GetAggregateID()))
 	}
 
 	s.log.Infof("MONGO PROJECTION HANDLE EVENT: %s", event.String())
+	return nil
+}
+
+func (s *bankAccountMongoSubscription) recreateProjection(ctx context.Context, event es.Event) error {
+	span, ctx := opentracing.StartSpanFromContext(ctx, "bankAccountMongoSubscription.recreateProjection")
+	defer span.Finish()
+
+	err := s.mr.DeleteByAggregateID(ctx, event.GetAggregateID())
+	if err != nil {
+		s.log.Errorf("MongoSubscription DeleteByAggregateID err: %v", err)
+		return tracing.TraceWithErr(span, errors.Wrapf(err, "When DeleteByAggregateID type: %s, aggregateID: %s", event.GetEventType(), event.GetAggregateID()))
+	}
+
+	bankAccountAggregate := domain.NewBankAccountAggregate(event.GetAggregateID())
+	err = s.as.Load(ctx, bankAccountAggregate)
+	if err != nil {
+		s.log.Errorf("MongoSubscription as.Load err: %v", err)
+		return tracing.TraceWithErr(span, errors.Wrapf(err, "When as.Load type: %s, aggregateID: %s", event.GetEventType(), event.GetAggregateID()))
+	}
+
+	err = s.mr.Insert(ctx, mappers.BankAccountToMongoProjection(bankAccountAggregate.BankAccount))
+	if err != nil {
+		s.log.Errorf("MongoSubscription mr.Insert err: %v", err)
+		return tracing.TraceWithErr(span, errors.Wrapf(err, "When mr.Insert type: %s, aggregateID: %s", event.GetEventType(), event.GetAggregateID()))
+	}
+
 	return nil
 }

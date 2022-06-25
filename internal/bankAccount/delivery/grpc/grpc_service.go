@@ -91,16 +91,16 @@ func (g *grpcService) GetById(ctx context.Context, request *bankAccountService.G
 	defer span.Finish()
 	span.LogFields(log.String("req", request.String()))
 
-	query := queries.GetBankAccountByIDQuery{AggregateID: request.GetId()}
-	bankAccount, err := g.bs.Queries.GetBankAccountByID.Handle(ctx, query)
+	query := queries.GetBankAccountByIDQuery{AggregateID: request.GetId(), FromEventStore: request.IsOwner}
+	bankAccountProjection, err := g.bs.Queries.GetBankAccountByID.Handle(ctx, query)
 	if err != nil {
 		g.log.Errorf("(GetBankAccountByID.Handle) err: %v", err)
 		return nil, grpc_errors.ErrResponse(tracing.TraceWithErr(span, err))
 	}
 
-	g.log.Infof("GetById bankAccount: %+v", bankAccount)
+	g.log.Infof("GetById bankAccountProjection: %+v", bankAccountProjection)
 
-	return &bankAccountService.GetByIdResponse{BankAccount: mappers.BankAccountToProto(bankAccount)}, nil
+	return &bankAccountService.GetByIdResponse{BankAccount: mappers.BankAccountMongoProjectionToProto(bankAccountProjection)}, nil
 }
 
 func (g *grpcService) GetBankAccountByStatus(ctx context.Context, request *bankAccountService.GetBankAccountByStatusRequest) (*bankAccountService.GetBankAccountByStatusResponse, error) {

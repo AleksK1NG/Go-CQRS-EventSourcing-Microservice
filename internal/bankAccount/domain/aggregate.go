@@ -61,7 +61,7 @@ func (a *BankAccountAggregate) onBankAccountCreated(event *events.BankAccountCre
 	a.BankAccount.Balance = event.Balance
 	a.BankAccount.FirstName = event.FirstName
 	a.BankAccount.LastName = event.LastName
-	a.BankAccount.Status = event.Address
+	a.BankAccount.Status = event.Status
 }
 
 func (a *BankAccountAggregate) onBalanceDeposited(event *events.BalanceDepositedEventV1) {

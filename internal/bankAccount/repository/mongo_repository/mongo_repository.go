@@ -62,6 +62,45 @@ func (b *bankAccountMongoRepository) Update(ctx context.Context, projection *dom
 	return nil
 }
 
+func (b *bankAccountMongoRepository) Upsert(ctx context.Context, projection *domain.BankAccountMongoProjection) error {
+	span, ctx := opentracing.StartSpanFromContext(ctx, "bankAccountMongoRepository.Update")
+	defer span.Finish()
+	span.LogFields(log.String("aggregateID", projection.AggregateID))
+
+	projection.UpdatedAt = time.Now().UTC()
+
+	ops := options.FindOneAndUpdate()
+	ops.SetReturnDocument(options.After)
+	ops.SetUpsert(true)
+	filter := bson.M{constants.MongoAggregateID: projection.AggregateID}
+
+	err := b.bankAccountsCollection().FindOneAndUpdate(ctx, filter, bson.M{"$set": projection}, ops).Decode(projection)
+	if err != nil {
+		return tracing.TraceWithErr(span, errors.Wrapf(err, "Upsert [FindOneAndUpdate] aggregateID: %s", projection.AggregateID))
+	}
+
+	b.log.Debugf("[Upsert] result AggregateID: %s", projection.AggregateID)
+	return nil
+}
+
+func (b *bankAccountMongoRepository) DeleteByAggregateID(ctx context.Context, aggregateID string) error {
+	span, ctx := opentracing.StartSpanFromContext(ctx, "bankAccountMongoRepository.DeleteByAggregateID")
+	defer span.Finish()
+	span.LogFields(log.String("aggregateID", aggregateID))
+
+	filter := bson.M{constants.MongoAggregateID: aggregateID}
+	ops := options.FindOneAndDelete()
+	ops.SetMaxTime(time.Second * 3)
+
+	err := b.bankAccountsCollection().FindOneAndDelete(ctx, filter, ops).Err()
+	if err != nil {
+		return tracing.TraceWithErr(span, errors.Wrapf(err, "DeleteByAggregateID [FindOneAndDelete] aggregateID: %s", aggregateID))
+	}
+
+	b.log.Debugf("[DeleteByAggregateID] result AggregateID: %s", aggregateID)
+	return nil
+}
+
 func (b *bankAccountMongoRepository) GetByAggregateID(ctx context.Context, aggregateID string) (*domain.BankAccountMongoProjection, error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, "bankAccountMongoRepository.GetByAggregateID")
 	defer span.Finish()
