@@ -15,11 +15,12 @@ const (
 
 	writerReadTimeout  = 1 * time.Second
 	writerWriteTimeout = 1 * time.Second
-	batchTimeout       = 300 * time.Millisecond
+	batchTimeout       = 100 * time.Millisecond
+	batchSize          = 100
 
 	writerRequireNoneReadTimeout  = 5 * time.Second
 	writerRequireNoneWriteTimeout = 5 * time.Second
 
 	writerRequiredAcks = 1
-	writerMaxAttempts  = 3
+	writerMaxAttempts  = 5
 )

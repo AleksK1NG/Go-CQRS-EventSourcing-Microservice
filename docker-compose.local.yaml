@@ -2,7 +2,7 @@ version: "3.9"
 
 services:
   es_postgesql:
-    image: postgres:14.2
+    image: postgres:14.4
     container_name: es_postgesql
     expose:
       - "5432"
@@ -30,7 +30,7 @@ services:
     networks: [ "microservices" ]
 
   kafka:
-    image: 'bitnami/kafka:3.1.0'
+    image: 'bitnami/kafka:3.2.0'
     ports:
       - "9092:9092"
       - "9093:9093"
@@ -66,7 +66,7 @@ services:
   jaeger:
     container_name: jaeger_container
     restart: always
-    image: jaegertracing/all-in-one:1.33.0
+    image: jaegertracing/all-in-one:1.35
     environment:
       - COLLECTOR_ZIPKIN_HTTP_PORT=9411
     ports:

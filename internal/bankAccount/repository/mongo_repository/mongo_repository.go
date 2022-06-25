@@ -13,6 +13,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"time"
 )
 
 type bankAccountMongoRepository struct {
@@ -45,12 +46,14 @@ func (b *bankAccountMongoRepository) Update(ctx context.Context, projection *dom
 	span.LogFields(log.String("aggregateID", projection.AggregateID))
 
 	projection.ID = ""
+	projection.UpdatedAt = time.Now().UTC()
+
 	ops := options.FindOneAndUpdate()
 	ops.SetReturnDocument(options.After)
 	ops.SetUpsert(false)
 	filter := bson.M{constants.MongoAggregateID: projection.AggregateID}
 
-	err := b.bankAccountsCollection().FindOneAndUpdate(ctx, filter, projection, ops).Decode(projection)
+	err := b.bankAccountsCollection().FindOneAndUpdate(ctx, filter, bson.M{"$set": projection}, ops).Decode(projection)
 	if err != nil {
 		return tracing.TraceWithErr(span, errors.Wrapf(err, "[FindOneAndUpdate] aggregateID: %s", projection.AggregateID))
 	}

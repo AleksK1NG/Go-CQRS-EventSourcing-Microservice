@@ -18,6 +18,7 @@ func NewWriter(brokers []string, errLogger kafka.Logger) *kafka.Writer {
 		ReadTimeout:  writerReadTimeout,
 		WriteTimeout: writerWriteTimeout,
 		BatchTimeout: batchTimeout,
+		BatchSize:    batchSize,
 		Async:        false,
 	}
 	return w
@@ -37,7 +38,7 @@ func NewAsyncWriter(brokers []string, errLogger kafka.Logger, log logger.Logger)
 		Async:        true,
 		Completion: func(messages []kafka.Message, err error) {
 			if err != nil {
-				log.Errorf("(kafka.AsyncWriter Error): topic: {%s}, partition: {%v}, offset: {%v} err: {%v}", messages[0].Topic, messages[0].Partition, messages[0].Offset, err)
+				log.Errorf("(kafka.AsyncWriter Error) topic: %s, partition: %v, offset: %v err: %v", messages[0].Topic, messages[0].Partition, messages[0].Offset, err)
 				return
 			}
 		},
@@ -61,9 +62,9 @@ func NewAsyncWriterWithCallback(brokers []string, errLogger kafka.Logger, log lo
 		Async:        true,
 		Completion: func(messages []kafka.Message, err error) {
 			if err != nil {
-				log.Errorf("(kafka.AsyncWriter Error): topic: {%s}, partition: {%v}, offset: {%v} err: {%v}", messages[0].Topic, messages[0].Partition, messages[0].Offset, err)
+				log.Errorf("(kafka.AsyncWriter Error) topic: %s, partition: %v, offset: %v err: %v", messages[0].Topic, messages[0].Partition, messages[0].Offset, err)
 				if err := cb(messages); err != nil {
-					log.Errorf("(kafka.AsyncWriter Callback Error) err: {%v}", err)
+					log.Errorf("(kafka.AsyncWriter Callback Error) err: %v", err)
 					return
 				}
 				return
@@ -87,7 +88,7 @@ func NewRequireNoneWriter(brokers []string, errLogger kafka.Logger, log logger.L
 		Async:        false,
 		Completion: func(messages []kafka.Message, err error) {
 			if err != nil {
-				log.Errorf("(kafka.Writer Error): topic: {%s}, partition: {%v}, offset: {%v} err: {%v}", messages[0].Topic, messages[0].Partition, messages[0].Offset, err)
+				log.Errorf("(kafka.Writer Error) topic: %s, partition: %v, offset: %v err: %v", messages[0].Topic, messages[0].Partition, messages[0].Offset, err)
 				return
 			}
 		},

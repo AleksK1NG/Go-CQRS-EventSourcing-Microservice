@@ -80,12 +80,7 @@ func (s *bankAccountMongoSubscription) handle(ctx context.Context, r *kafka.Read
 	span, ctx := opentracing.StartSpanFromContext(ctx, "bankAccountMongoSubscription.handle")
 	defer span.Finish()
 
-	deserializedEvent, err := s.serializer.DeserializeEvent(event)
-	if err != nil {
-		return tracing.TraceWithErr(span, errors.Wrapf(err, "serializer.DeserializeEvent type: %s, aggregateID: %s", event.GetEventType(), event.GetAggregateID()))
-	}
-
-	err = s.mp.When(ctx, deserializedEvent)
+	err := s.mp.When(ctx, event)
 	if err != nil {
 		return tracing.TraceWithErr(span, errors.Wrapf(err, "When type: %s, aggregateID: %s", event.GetEventType(), event.GetAggregateID()))
 	}
