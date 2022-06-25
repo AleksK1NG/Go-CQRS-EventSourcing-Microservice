@@ -67,6 +67,7 @@ kafkaPublisherConfig:
 projections:
   mongoGroup: 'mongoGroup'
   elasticGroup: 'elasticGroup'
+  mongoSubscriptionPoolSize: 10
 
 elastic:
   url: "http://localhost:9200"

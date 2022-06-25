@@ -118,15 +118,28 @@ func (a *app) Run() error {
 	eventSerializer := domain.NewEventSerializer()
 	eventBus := es.NewKafkaEventsBus(kafkaProducer, a.cfg.KafkaPublisherConfig)
 	eventStore := es.NewPgEventStore(a.log, a.cfg.EventSourcingConfig, a.pgxConn, eventBus, eventSerializer)
-	a.bs = service.NewBankAccountService(a.log, eventStore)
-
 	bankAccountMongoRepository := mongo_repository.NewBankAccountMongoRepository(a.log, &a.cfg, a.mongoClient)
 	bankAccountMongoProjection := mongo_projection.NewBankAccountMongoProjection(a.log, &a.cfg, eventSerializer, bankAccountMongoRepository)
+	a.bs = service.NewBankAccountService(a.log, eventStore, bankAccountMongoRepository)
 
-	mongoSubscription := bankAccountMongoSubscription.NewBankAccountMongoSubscription(a.log, &a.cfg, a.bs, bankAccountMongoProjection, eventSerializer)
+	mongoSubscription := bankAccountMongoSubscription.NewBankAccountMongoSubscription(
+		a.log,
+		&a.cfg,
+		a.bs,
+		bankAccountMongoProjection,
+		eventSerializer,
+		bankAccountMongoRepository,
+		eventStore,
+	)
+
 	mongoConsumerGroup := kafkaClient.NewConsumerGroup(a.cfg.Kafka.Brokers, a.cfg.Projections.MongoGroup, a.log)
 	go func() {
-		err := mongoConsumerGroup.ConsumeTopicWithErrGroup(ctx, a.getConsumerGroupTopics(), 10, mongoSubscription.ProcessMessagesErrGroup)
+		err := mongoConsumerGroup.ConsumeTopicWithErrGroup(
+			ctx,
+			a.getConsumerGroupTopics(),
+			a.cfg.Projections.MongoSubscriptionPoolSize,
+			mongoSubscription.ProcessMessagesErrGroup,
+		)
 		if err != nil {
 			a.log.Errorf("(mongoConsumerGroup ConsumeTopicWithErrGroup) err: %v", err)
 			cancel()

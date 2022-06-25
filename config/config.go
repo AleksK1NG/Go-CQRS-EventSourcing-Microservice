@@ -68,8 +68,9 @@ type ElasticIndexes struct {
 }
 
 type Projections struct {
-	MongoGroup   string `mapstructure:"mongoGroup" validate:"required"`
-	ElasticGroup string `mapstructure:"elasticGroup" validate:"required"`
+	MongoGroup                string `mapstructure:"mongoGroup" validate:"required"`
+	MongoSubscriptionPoolSize int    `mapstructure:"mongoSubscriptionPoolSize" validate:"required,gte=0"`
+	ElasticGroup              string `mapstructure:"elasticGroup" validate:"required"`
 }
 
 type Http struct {
