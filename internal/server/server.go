@@ -3,7 +3,10 @@ package server
 import (
 	"context"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/config"
+	bankAccountMongoSubscription "github.com/AleksK1NG/go-cqrs-eventsourcing/internal/bankAccount/delivery/kafka"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/internal/bankAccount/domain"
+	"github.com/AleksK1NG/go-cqrs-eventsourcing/internal/bankAccount/projection/mongo_projection"
+	"github.com/AleksK1NG/go-cqrs-eventsourcing/internal/bankAccount/repository/mongo_repository"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/internal/bankAccount/service"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/internal/metrics"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/es"
@@ -112,11 +115,24 @@ func (a *app) Run() error {
 	kafkaProducer := kafkaClient.NewProducer(a.log, a.cfg.Kafka.Brokers)
 	defer kafkaProducer.Close() // nolint: errcheck
 
+	eventSerializer := domain.NewEventSerializer()
 	eventBus := es.NewKafkaEventsBus(kafkaProducer, a.cfg.KafkaPublisherConfig)
-	eventStore := es.NewPgEventStore(a.log, a.cfg.EventSourcingConfig, a.pgxConn, eventBus, domain.NewEventSerializer())
+	eventStore := es.NewPgEventStore(a.log, a.cfg.EventSourcingConfig, a.pgxConn, eventBus, eventSerializer)
 	a.bs = service.NewBankAccountService(a.log, eventStore)
 
-	//bankAccountMongoSubscription := bankAccountMongoSubscription.NewBankAccountMongoSubscription(a.log, &a.cfg, a.bs)
+	bankAccountMongoRepository := mongo_repository.NewBankAccountMongoRepository(a.log, &a.cfg, a.mongoClient)
+	bankAccountMongoProjection := mongo_projection.NewBankAccountMongoProjection(a.log, &a.cfg, eventSerializer, bankAccountMongoRepository)
+
+	mongoSubscription := bankAccountMongoSubscription.NewBankAccountMongoSubscription(a.log, &a.cfg, a.bs, bankAccountMongoProjection, eventSerializer)
+	mongoConsumerGroup := kafkaClient.NewConsumerGroup(a.cfg.Kafka.Brokers, a.cfg.Projections.MongoGroup, a.log)
+	go func() {
+		err := mongoConsumerGroup.ConsumeTopicWithErrGroup(ctx, a.getConsumerGroupTopics(), 10, mongoSubscription.ProcessMessagesErrGroup)
+		if err != nil {
+			a.log.Errorf("(mongoConsumerGroup ConsumeTopicWithErrGroup) err: %v", err)
+			cancel()
+			return
+		}
+	}()
 
 	closeGrpcServer, grpcServer, err := a.newBankAccountGrpcServer()
 	if err != nil {

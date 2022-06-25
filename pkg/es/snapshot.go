@@ -15,7 +15,7 @@ type Snapshot struct {
 }
 
 func (s *Snapshot) String() string {
-	return fmt.Sprintf("AggregateID: {%s}, Type: {%s}, StateSize: {%d}, Version: {%d},",
+	return fmt.Sprintf("AggregateID: %s, Type: %s, StateSize: %d, Version: %d",
 		s.ID,
 		string(s.Type),
 		len(s.State),
@@ -28,7 +28,7 @@ func NewSnapshotFromAggregate(aggregate Aggregate) (*Snapshot, error) {
 
 	aggregateBytes, err := serializer.Marshal(aggregate)
 	if err != nil {
-		return nil, errors.Wrap(err, "serializer.Marshal")
+		return nil, errors.Wrapf(err, "serializer.Marshal aggregateID: %s", aggregate.GetID())
 	}
 
 	return &Snapshot{

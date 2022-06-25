@@ -12,6 +12,7 @@ import (
 	"github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/log"
 	"github.com/pkg/errors"
+	"time"
 )
 
 type bankAccountMongoProjection struct {
@@ -36,7 +37,7 @@ func (b *bankAccountMongoProjection) When(ctx context.Context, esEvent es.Event)
 
 	deserializedEvent, err := b.serializer.DeserializeEvent(esEvent)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "serializer.DeserializeEvent aggregateID: %s, type: %s", esEvent.GetAggregateID(), esEvent.GetEventType())
 	}
 
 	switch event := deserializedEvent.(type) {
@@ -51,7 +52,7 @@ func (b *bankAccountMongoProjection) When(ctx context.Context, esEvent es.Event)
 		return b.onEmailChanged(ctx, esEvent.GetAggregateID(), event)
 
 	default:
-		return errors.Wrapf(bankAccountErrors.ErrUnknownEventType, "esEvent: %+v", esEvent)
+		return errors.Wrapf(bankAccountErrors.ErrUnknownEventType, "esEvent: %s", esEvent.String())
 	}
 }
 
@@ -68,6 +69,8 @@ func (b *bankAccountMongoProjection) onBankAccountCreated(ctx context.Context, a
 		LastName:    event.LastName,
 		Balance:     event.Balance,
 		Status:      event.Status,
+		UpdatedAt:   time.Now().UTC(),
+		CreatedAt:   time.Now().UTC(),
 	}
 
 	err := b.mr.Insert(ctx, projection)
