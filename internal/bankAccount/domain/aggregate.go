@@ -65,6 +65,11 @@ func (a *BankAccountAggregate) CreateNewBankAccount(ctx context.Context, email, 
 	defer span.Finish()
 	span.LogFields(log.String("AggregateID", a.GetID()))
 
+	metaDataBytes, err := serializer.Marshal(tracing.ExtractTextMapCarrier(span.Context()))
+	if err != nil {
+		return errors.Wrap(err, "serializer.Marshal")
+	}
+
 	event := &events.BankAccountCreatedEventV1{
 		Email:     email,
 		Address:   address,
@@ -72,13 +77,8 @@ func (a *BankAccountAggregate) CreateNewBankAccount(ctx context.Context, email, 
 		LastName:  lastName,
 		Balance:   money.New(amount, money.USD),
 		Status:    status,
+		Metadata:  metaDataBytes,
 	}
-
-	metaDataBytes, err := serializer.Marshal(tracing.ExtractTextMapCarrier(span.Context()))
-	if err != nil {
-		return errors.Wrap(err, "serializer.Marshal")
-	}
-	event.Metadata = metaDataBytes
 
 	return a.Apply(event)
 }
@@ -92,16 +92,16 @@ func (a *BankAccountAggregate) DepositBalance(ctx context.Context, amount int64,
 		return errors.Wrapf(bankAccountErrors.ErrInvalidBalanceAmount, "amount: %d", amount)
 	}
 
-	event := &events.BalanceDepositedEventV1{
-		Amount:    amount,
-		PaymentID: paymentID,
-	}
-
 	metaDataBytes, err := serializer.Marshal(tracing.ExtractTextMapCarrier(span.Context()))
 	if err != nil {
 		return errors.Wrap(err, "serializer.Marshal")
 	}
-	event.Metadata = metaDataBytes
+
+	event := &events.BalanceDepositedEventV1{
+		Amount:    amount,
+		PaymentID: paymentID,
+		Metadata:  metaDataBytes,
+	}
 
 	return a.Apply(event)
 }
@@ -111,13 +111,12 @@ func (a *BankAccountAggregate) ChangeEmail(ctx context.Context, email string) er
 	defer span.Finish()
 	span.LogFields(log.String("AggregateID", a.GetID()))
 
-	event := &events.EmailChangedEventV1{Email: email}
-
 	metaDataBytes, err := serializer.Marshal(tracing.ExtractTextMapCarrier(span.Context()))
 	if err != nil {
 		return errors.Wrap(err, "serializer.Marshal")
 	}
-	event.Metadata = metaDataBytes
+
+	event := &events.EmailChangedEventV1{Email: email, Metadata: metaDataBytes}
 
 	return a.Apply(event)
 }

@@ -28,7 +28,7 @@ type BankAccountMongoProjection struct {
 }
 
 func (b *BankAccountMongoProjection) String() string {
-	return fmt.Sprintf("ID: %s, AggregateID: %s, Email: %s, Address: %s, FirstName: %s, LastName: %s, Status: %s, Balance: %s",
+	return fmt.Sprintf("ID: %s, AggregateID: %s, Email: %s, Address: %s, FirstName: %s, LastName: %s, Status: %s, Balance: %s,  UpdatedAt: %s, CreatedAt: %s",
 		b.ID,
 		b.AggregateID,
 		b.Email,
@@ -37,5 +37,7 @@ func (b *BankAccountMongoProjection) String() string {
 		b.LastName,
 		b.Status,
 		b.Balance.String(),
+		b.UpdatedAt,
+		b.CreatedAt,
 	)
 }

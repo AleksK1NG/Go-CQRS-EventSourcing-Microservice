@@ -3,6 +3,7 @@ package mappers
 import (
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/internal/bankAccount/domain"
 	bankAccountService "github.com/AleksK1NG/go-cqrs-eventsourcing/proto/bank_account"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func BankAccountToMongoProjection(bankAccount *domain.BankAccount) *domain.BankAccountMongoProjection {
@@ -41,5 +42,7 @@ func BankAccountMongoProjectionToProto(bankAccount *domain.BankAccountMongoProje
 		LastName:  bankAccount.LastName,
 		Balance:   BalanceToGrpc(bankAccount.Balance),
 		Status:    bankAccount.Status,
+		UpdatedAt: timestamppb.New(bankAccount.UpdatedAt.UTC()),
+		CreatedAt: timestamppb.New(bankAccount.CreatedAt.UTC()),
 	}
 }
