@@ -35,41 +35,34 @@ func NewBankAccountAggregate(id string) *BankAccountAggregate {
 }
 
 func (a *BankAccountAggregate) When(event any) error {
+
 	switch evt := event.(type) {
+
 	case *events.BankAccountCreatedEventV1:
-		a.onBankAccountCreated(evt)
+		a.BankAccount.Email = evt.Email
+		a.BankAccount.Address = evt.Address
+		if evt.Balance > 0 {
+			a.BankAccount.DepositBalance(evt.Balance)
+		} else {
+			a.BankAccount.Balance = 0
+		}
+		a.BankAccount.Balance = evt.Balance
+		a.BankAccount.FirstName = evt.FirstName
+		a.BankAccount.LastName = evt.LastName
+		a.BankAccount.Status = evt.Status
 		return nil
+
 	case *events.BalanceDepositedEventV1:
-		a.onBalanceDeposited(evt)
+		a.BankAccount.Balance += evt.Amount
 		return nil
+
 	case *events.EmailChangedEventV1:
-		a.onEmailChanged(evt)
+		a.BankAccount.Email = evt.Email
 		return nil
+
 	default:
-		return errors.Wrapf(bankAccountErrors.ErrUnknownEventType, "event: %+v", event)
+		return errors.Wrapf(bankAccountErrors.ErrUnknownEventType, "event: %#v", event)
 	}
-}
-
-func (a *BankAccountAggregate) onBankAccountCreated(event *events.BankAccountCreatedEventV1) {
-	a.BankAccount.Email = event.Email
-	a.BankAccount.Address = event.Address
-	if event.Balance > 0 {
-		a.BankAccount.DepositBalance(event.Balance)
-	} else {
-		a.BankAccount.Balance = 0
-	}
-	a.BankAccount.Balance = event.Balance
-	a.BankAccount.FirstName = event.FirstName
-	a.BankAccount.LastName = event.LastName
-	a.BankAccount.Status = event.Status
-}
-
-func (a *BankAccountAggregate) onBalanceDeposited(event *events.BalanceDepositedEventV1) {
-	a.BankAccount.Balance += event.Amount
-}
-
-func (a *BankAccountAggregate) onEmailChanged(event *events.EmailChangedEventV1) {
-	a.BankAccount.Email = event.Email
 }
 
 func (a *BankAccountAggregate) CreateNewBankAccount(ctx context.Context, email, address, firstName, lastName, status string, balance float64) error {

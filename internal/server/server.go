@@ -9,6 +9,7 @@ import (
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/internal/bankAccount/repository/mongo_repository"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/internal/bankAccount/service"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/internal/metrics"
+	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/elastic"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/es"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/interceptors"
 	kafkaClient "github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/kafka"
@@ -16,10 +17,11 @@ import (
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/middlewares"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/mongodb"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/tracing"
+	"github.com/elastic/go-elasticsearch/v8"
+	"github.com/elastic/go-elasticsearch/v8/esapi"
 	"github.com/go-playground/validator"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/labstack/echo/v4"
-	v7 "github.com/olivere/elastic/v7"
 	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/segmentio/kafka-go"
@@ -49,7 +51,7 @@ type app struct {
 	pgxConn       *pgxpool.Pool
 	mongoClient   *mongo.Client
 	doneCh        chan struct{}
-	elasticClient *v7.Client
+	elasticClient *elasticsearch.Client
 	echo          *echo.Echo
 	ps            *http.Server
 	bs            *service.BankAccountService
@@ -94,11 +96,25 @@ func (a *app) Run() error {
 
 	a.initMongoDBCollections(ctx)
 
-	// connect elastic
-	if err := a.initElasticClient(ctx); err != nil {
-		a.log.Errorf("(initElasticClient) err: %v", err)
+	elasticSearchClient, err := elastic.NewElasticSearchClient(a.cfg.ElasticSearch)
+	if err != nil {
 		return err
 	}
+	a.elasticClient = elasticSearchClient
+
+	infoRequest := &esapi.InfoRequest{Pretty: true}
+	response, err := infoRequest.Do(context.Background(), a.elasticClient)
+	if err != nil {
+		return err
+	}
+
+	a.log.Infof("Elastic info response: %s", response.String())
+
+	// connect elastic
+	//if err := a.initElasticClient(ctx); err != nil {
+	//	a.log.Errorf("(initElasticClient) err: %v", err)
+	//	return err
+	//}
 
 	// connect kafka brokers
 	if err := a.connectKafkaBrokers(ctx); err != nil {

@@ -69,13 +69,8 @@ projections:
   elasticGroup: 'elasticGroup'
   mongoSubscriptionPoolSize: 10
 
-elastic:
-  url: "http://localhost:9200"
-  sniff: false
-  gzip: true
-  explain: true
-  fetchSource: true
-  version: true
-  pretty: true
-elasticIndexes:
-  orders: "bankAccounts"
+elasticSearch:
+  addresses: ["http://localhost:9200"]
+  username: ""
+  password: ""
+  apiKey: ""

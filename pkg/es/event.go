@@ -149,7 +149,7 @@ func (e *Event) GetString() string {
 }
 
 func (e *Event) String() string {
-	return fmt.Sprintf("(Event): AggregateID: {%s}, Version: {%d}, EventType: {%s}, AggregateType: {%s}, Metadata: {%s}, TimeStamp: {%s}, EventID: {%s}",
+	return fmt.Sprintf("(Event) AggregateID: %s, Version: %d, EventType: %s, AggregateType: %s, Metadata: %s, TimeStamp: %s, EventID: %s",
 		e.AggregateID,
 		e.Version,
 		e.EventType,

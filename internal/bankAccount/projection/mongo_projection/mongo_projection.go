@@ -78,7 +78,7 @@ func (b *bankAccountMongoProjection) onBankAccountCreated(ctx context.Context, a
 		return tracing.TraceWithErr(span, errors.Wrapf(err, "[onBankAccountCreated] mr.Insert aggregateID: %s", aggregateID))
 	}
 
-	b.log.Infof("[onBankAccountCreated] projection: %+v", projection)
+	b.log.Infof("[onBankAccountCreated] projection: %#v", projection)
 	return nil
 }
 
@@ -99,7 +99,7 @@ func (b *bankAccountMongoProjection) onBalanceDeposited(ctx context.Context, agg
 		return tracing.TraceWithErr(span, errors.Wrapf(err, "[onBalanceDeposited] mr.Update aggregateID: %s", aggregateID))
 	}
 
-	b.log.Infof("[onBalanceDeposited] projection: %+v", projection)
+	b.log.Infof("[onBalanceDeposited] projection: %#v", projection)
 	return nil
 }
 
@@ -120,6 +120,6 @@ func (b *bankAccountMongoProjection) onEmailChanged(ctx context.Context, aggrega
 		return tracing.TraceWithErr(span, errors.Wrapf(err, "[onEmailChanged] mr.Update aggregateID: %s", aggregateID))
 	}
 
-	b.log.Infof("[onEmailChanged] projection: %+v", projection)
+	b.log.Infof("[onEmailChanged] projection: %#v", projection)
 	return nil
 }

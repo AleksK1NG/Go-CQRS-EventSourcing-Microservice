@@ -63,7 +63,7 @@ func (p *pgEventStore) SaveEvents(ctx context.Context, events []Event) error {
 			return RollBackTx(ctx, tx, tracing.TraceWithErr(span, err))
 		}
 
-		p.log.Debugf("(SaveEvents) result: {%s}, AggregateID: {%s}, AggregateVersion: {%v}", result.String(), events[0].GetAggregateID(), events[0].GetVersion())
+		p.log.Debugf("(SaveEvents) result: %s, AggregateID: %s, AggregateVersion: %v", result.String(), events[0].GetAggregateID(), events[0].GetVersion())
 		return tx.Commit(ctx)
 	}
 
@@ -283,7 +283,7 @@ func (p *pgEventStore) loadAggregateEventsByVersion(ctx context.Context, aggrega
 			return tracing.TraceWithErr(span, errors.Wrap(err, "RaiseEvent"))
 		}
 
-		p.log.Debugf("(loadAggregateEventsByVersion) event: {%s}", event.String())
+		p.log.Debugf("(loadAggregateEventsByVersion) event: %s", event.String())
 	}
 
 	if err := rows.Err(); err != nil {

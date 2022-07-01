@@ -27,6 +27,7 @@ func (s *eventSerializer) SerializeEvent(aggregate es.Aggregate, event any) (es.
 	}
 
 	switch evt := event.(type) {
+
 	case *events.BankAccountCreatedEventV1:
 		return es.Event{
 			EventID:       uuid.NewV4().String(),
@@ -38,6 +39,7 @@ func (s *eventSerializer) SerializeEvent(aggregate es.Aggregate, event any) (es.
 			Metadata:      evt.Metadata,
 			Timestamp:     time.Now().UTC(),
 		}, nil
+
 	case *events.BalanceDepositedEventV1:
 		return es.Event{
 			EventID:       uuid.NewV4().String(),
@@ -49,6 +51,7 @@ func (s *eventSerializer) SerializeEvent(aggregate es.Aggregate, event any) (es.
 			Metadata:      evt.Metadata,
 			Timestamp:     time.Now().UTC(),
 		}, nil
+
 	case *events.EmailChangedEventV1:
 		return es.Event{
 			EventID:       uuid.NewV4().String(),
@@ -60,6 +63,7 @@ func (s *eventSerializer) SerializeEvent(aggregate es.Aggregate, event any) (es.
 			Metadata:      evt.Metadata,
 			Timestamp:     time.Now().UTC(),
 		}, nil
+
 	default:
 		return es.Event{}, errors.Wrapf(ErrInvalidEvent, "aggregateID: %s, type: %T", aggregate.GetID(), event)
 	}
@@ -68,24 +72,28 @@ func (s *eventSerializer) SerializeEvent(aggregate es.Aggregate, event any) (es.
 
 func (s *eventSerializer) DeserializeEvent(event es.Event) (any, error) {
 	switch event.GetEventType() {
+
 	case events.BankAccountCreatedEventType:
 		var evt events.BankAccountCreatedEventV1
 		if err := event.GetJsonData(&evt); err != nil {
 			return nil, errors.Wrapf(err, "event.GetJsonData type: %s", event.GetEventType())
 		}
 		return &evt, nil
+
 	case events.BalanceDepositedEventType:
 		var evt events.BalanceDepositedEventV1
 		if err := event.GetJsonData(&evt); err != nil {
 			return nil, errors.Wrapf(err, "event.GetJsonData type: %s", event.GetEventType())
 		}
 		return &evt, nil
+
 	case events.EmailChangedEventType:
 		var evt events.EmailChangedEventV1
 		if err := event.GetJsonData(&evt); err != nil {
 			return nil, errors.Wrapf(err, "event.GetJsonData type: %s", event.GetEventType())
 		}
 		return &evt, nil
+
 	default:
 		return nil, errors.Wrapf(ErrInvalidEvent, "type: %s", event.GetEventType())
 	}
