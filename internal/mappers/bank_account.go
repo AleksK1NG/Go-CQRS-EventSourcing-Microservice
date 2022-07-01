@@ -12,8 +12,11 @@ func BankAccountToMongoProjection(bankAccount *domain.BankAccount) *domain.BankA
 		Address:     bankAccount.Address,
 		FirstName:   bankAccount.FirstName,
 		LastName:    bankAccount.LastName,
-		Balance:     bankAccount.Balance,
-		Status:      bankAccount.Status,
+		Balance: domain.Balance{
+			Amount:   bankAccount.Balance.AsMajorUnits(),
+			Currency: bankAccount.Balance.Currency().Code,
+		},
+		Status: bankAccount.Status,
 	}
 }
 
@@ -24,7 +27,7 @@ func BankAccountToProto(bankAccount *domain.BankAccount) *bankAccountService.Ban
 		Address:   bankAccount.Address,
 		FirstName: bankAccount.FirstName,
 		LastName:  bankAccount.LastName,
-		Balance:   bankAccount.Balance,
+		Balance:   BalanceMoneyToGrpc(bankAccount.Balance),
 		Status:    bankAccount.Status,
 	}
 }
@@ -36,7 +39,7 @@ func BankAccountMongoProjectionToProto(bankAccount *domain.BankAccountMongoProje
 		Address:   bankAccount.Address,
 		FirstName: bankAccount.FirstName,
 		LastName:  bankAccount.LastName,
-		Balance:   bankAccount.Balance,
+		Balance:   BalanceToGrpc(bankAccount.Balance),
 		Status:    bankAccount.Status,
 	}
 }

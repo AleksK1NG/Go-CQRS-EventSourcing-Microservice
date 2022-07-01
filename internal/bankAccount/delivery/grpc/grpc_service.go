@@ -98,7 +98,7 @@ func (g *grpcService) GetById(ctx context.Context, request *bankAccountService.G
 		return nil, grpc_errors.ErrResponse(tracing.TraceWithErr(span, err))
 	}
 
-	g.log.Infof("GetById bankAccountProjection: %+v", bankAccountProjection)
+	g.log.Infof("GetById bankAccountProjection: %#v", bankAccountProjection)
 
 	return &bankAccountService.GetByIdResponse{BankAccount: mappers.BankAccountMongoProjectionToProto(bankAccountProjection)}, nil
 }

@@ -7,6 +7,7 @@ import (
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/es"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/es/serializer"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/tracing"
+	"github.com/Rhymond/go-money"
 	"github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/log"
 	"github.com/pkg/errors"
@@ -41,11 +42,6 @@ func (a *BankAccountAggregate) When(event any) error {
 	case *events.BankAccountCreatedEventV1:
 		a.BankAccount.Email = evt.Email
 		a.BankAccount.Address = evt.Address
-		if evt.Balance > 0 {
-			a.BankAccount.DepositBalance(evt.Balance)
-		} else {
-			a.BankAccount.Balance = 0
-		}
 		a.BankAccount.Balance = evt.Balance
 		a.BankAccount.FirstName = evt.FirstName
 		a.BankAccount.LastName = evt.LastName
@@ -53,8 +49,7 @@ func (a *BankAccountAggregate) When(event any) error {
 		return nil
 
 	case *events.BalanceDepositedEventV1:
-		a.BankAccount.Balance += evt.Amount
-		return nil
+		return a.BankAccount.DepositBalance(evt.Amount)
 
 	case *events.EmailChangedEventV1:
 		a.BankAccount.Email = evt.Email
@@ -65,7 +60,7 @@ func (a *BankAccountAggregate) When(event any) error {
 	}
 }
 
-func (a *BankAccountAggregate) CreateNewBankAccount(ctx context.Context, email, address, firstName, lastName, status string, balance float64) error {
+func (a *BankAccountAggregate) CreateNewBankAccount(ctx context.Context, email, address, firstName, lastName, status string, amount int64) error {
 	span, _ := opentracing.StartSpanFromContext(ctx, "BankAccountAggregate.CreateNewBankAccount")
 	defer span.Finish()
 	span.LogFields(log.String("AggregateID", a.GetID()))
@@ -75,7 +70,7 @@ func (a *BankAccountAggregate) CreateNewBankAccount(ctx context.Context, email, 
 		Address:   address,
 		FirstName: firstName,
 		LastName:  lastName,
-		Balance:   balance,
+		Balance:   money.New(amount, money.USD),
 		Status:    status,
 	}
 
@@ -88,10 +83,14 @@ func (a *BankAccountAggregate) CreateNewBankAccount(ctx context.Context, email, 
 	return a.Apply(event)
 }
 
-func (a *BankAccountAggregate) DepositBalance(ctx context.Context, amount float64, paymentID string) error {
+func (a *BankAccountAggregate) DepositBalance(ctx context.Context, amount int64, paymentID string) error {
 	span, _ := opentracing.StartSpanFromContext(ctx, "BankAccountAggregate.DepositBalance")
 	defer span.Finish()
 	span.LogFields(log.String("AggregateID", a.GetID()))
+
+	if amount <= 0 {
+		return errors.Wrapf(bankAccountErrors.ErrInvalidBalanceAmount, "amount: %d", amount)
+	}
 
 	event := &events.BalanceDepositedEventV1{
 		Amount:    amount,

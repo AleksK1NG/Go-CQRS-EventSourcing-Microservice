@@ -42,7 +42,7 @@ func (q *getBankAccountByIDQuery) Handle(ctx context.Context, query GetBankAccou
 		if err := q.es.Load(ctx, bankAccountAggregate); err != nil {
 			return nil, tracing.TraceWithErr(span, err)
 		}
-		q.log.Debugf("GetBankAccountByIDQuery from es %+v", query)
+		q.log.Debugf("GetBankAccountByIDQuery from es bankAccountAggregate: %#+v", bankAccountAggregate.BankAccount)
 		return mappers.BankAccountToMongoProjection(bankAccountAggregate.BankAccount), nil
 	}
 
