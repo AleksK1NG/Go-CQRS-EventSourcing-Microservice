@@ -11,6 +11,7 @@ import (
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/internal/metrics"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/elastic"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/es"
+	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/esclient"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/interceptors"
 	kafkaClient "github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/kafka"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/logger"
@@ -18,7 +19,6 @@ import (
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/mongodb"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/tracing"
 	"github.com/elastic/go-elasticsearch/v8"
-	"github.com/elastic/go-elasticsearch/v8/esapi"
 	"github.com/go-playground/validator"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/labstack/echo/v4"
@@ -102,19 +102,12 @@ func (a *app) Run() error {
 	}
 	a.elasticClient = elasticSearchClient
 
-	infoRequest := &esapi.InfoRequest{Pretty: true}
-	response, err := infoRequest.Do(context.Background(), a.elasticClient)
+	// connect elastic
+	elasticInfoResponse, err := esclient.Info(ctx, a.elasticClient)
 	if err != nil {
 		return err
 	}
-
-	a.log.Infof("Elastic info response: %s", response.String())
-
-	// connect elastic
-	//if err := a.initElasticClient(ctx); err != nil {
-	//	a.log.Errorf("(initElasticClient) err: %v", err)
-	//	return err
-	//}
+	a.log.Infof("Elastic info response: %s", elasticInfoResponse.String())
 
 	// connect kafka brokers
 	if err := a.connectKafkaBrokers(ctx); err != nil {

@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/constants"
+	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/esclient"
 	"github.com/heptiolabs/healthcheck"
 	"net/http"
 	"time"
@@ -43,29 +44,29 @@ func (a *app) configureHealthCheckEndpoints(ctx context.Context, health healthch
 
 	health.AddLivenessCheck(constants.MongoDB, healthcheck.AsyncWithContext(ctx, func() error {
 		if err := a.mongoClient.Ping(ctx, nil); err != nil {
-			a.log.Warnf("(MongoDB Liveness Check) err: {%v}", err)
+			a.log.Warnf("(MongoDB Liveness Check) err: %v", err)
 			return err
 		}
 		return nil
 	}, time.Duration(a.cfg.Probes.CheckIntervalSeconds)*time.Second))
 
-	//health.AddReadinessCheck(constants.ElasticSearch, healthcheck.AsyncWithContext(ctx, func() error {
-	//	_, _, err := a.elasticClient.Ping(a.cfg.Elastic.URL).Do(ctx)
-	//	if err != nil {
-	//		a.log.Warnf("(ElasticSearch Readiness Check) err: {%v}", err)
-	//		return errors.Wrap(err, "client.Ping")
-	//	}
-	//	return nil
-	//}, time.Duration(a.cfg.Probes.CheckIntervalSeconds)*time.Second))
-	//
-	//health.AddLivenessCheck(constants.ElasticSearch, healthcheck.AsyncWithContext(ctx, func() error {
-	//	_, _, err := a.elasticClient.Ping(a.cfg.Elastic.URL).Do(ctx)
-	//	if err != nil {
-	//		a.log.Warnf("(ElasticSearch Liveness Check) err: {%v}", err)
-	//		return errors.Wrap(err, "client.Ping")
-	//	}
-	//	return nil
-	//}, time.Duration(a.cfg.Probes.CheckIntervalSeconds)*time.Second))
+	health.AddReadinessCheck(constants.ElasticSearch, healthcheck.AsyncWithContext(ctx, func() error {
+		_, err := esclient.Info(ctx, a.elasticClient)
+		if err != nil {
+			a.log.Warnf("(ElasticSearch Readiness Check) err: %v", err)
+			return err
+		}
+		return nil
+	}, time.Duration(a.cfg.Probes.CheckIntervalSeconds)*time.Second))
+
+	health.AddLivenessCheck(constants.ElasticSearch, healthcheck.AsyncWithContext(ctx, func() error {
+		_, err := esclient.Info(ctx, a.elasticClient)
+		if err != nil {
+			a.log.Warnf("(ElasticSearch Liveness Check) err: %v", err)
+			return err
+		}
+		return nil
+	}, time.Duration(a.cfg.Probes.CheckIntervalSeconds)*time.Second))
 }
 
 func (a *app) shutDownHealthCheckServer(ctx context.Context) error {
