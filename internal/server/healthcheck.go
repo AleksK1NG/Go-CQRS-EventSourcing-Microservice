@@ -4,7 +4,6 @@ import (
 	"context"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/constants"
 	"github.com/heptiolabs/healthcheck"
-	"github.com/pkg/errors"
 	"net/http"
 	"time"
 )
@@ -50,23 +49,23 @@ func (a *app) configureHealthCheckEndpoints(ctx context.Context, health healthch
 		return nil
 	}, time.Duration(a.cfg.Probes.CheckIntervalSeconds)*time.Second))
 
-	health.AddReadinessCheck(constants.ElasticSearch, healthcheck.AsyncWithContext(ctx, func() error {
-		_, _, err := a.elasticClient.Ping(a.cfg.Elastic.URL).Do(ctx)
-		if err != nil {
-			a.log.Warnf("(ElasticSearch Readiness Check) err: {%v}", err)
-			return errors.Wrap(err, "client.Ping")
-		}
-		return nil
-	}, time.Duration(a.cfg.Probes.CheckIntervalSeconds)*time.Second))
-
-	health.AddLivenessCheck(constants.ElasticSearch, healthcheck.AsyncWithContext(ctx, func() error {
-		_, _, err := a.elasticClient.Ping(a.cfg.Elastic.URL).Do(ctx)
-		if err != nil {
-			a.log.Warnf("(ElasticSearch Liveness Check) err: {%v}", err)
-			return errors.Wrap(err, "client.Ping")
-		}
-		return nil
-	}, time.Duration(a.cfg.Probes.CheckIntervalSeconds)*time.Second))
+	//health.AddReadinessCheck(constants.ElasticSearch, healthcheck.AsyncWithContext(ctx, func() error {
+	//	_, _, err := a.elasticClient.Ping(a.cfg.Elastic.URL).Do(ctx)
+	//	if err != nil {
+	//		a.log.Warnf("(ElasticSearch Readiness Check) err: {%v}", err)
+	//		return errors.Wrap(err, "client.Ping")
+	//	}
+	//	return nil
+	//}, time.Duration(a.cfg.Probes.CheckIntervalSeconds)*time.Second))
+	//
+	//health.AddLivenessCheck(constants.ElasticSearch, healthcheck.AsyncWithContext(ctx, func() error {
+	//	_, _, err := a.elasticClient.Ping(a.cfg.Elastic.URL).Do(ctx)
+	//	if err != nil {
+	//		a.log.Warnf("(ElasticSearch Liveness Check) err: {%v}", err)
+	//		return errors.Wrap(err, "client.Ping")
+	//	}
+	//	return nil
+	//}, time.Duration(a.cfg.Probes.CheckIntervalSeconds)*time.Second))
 }
 
 func (a *app) shutDownHealthCheckServer(ctx context.Context) error {

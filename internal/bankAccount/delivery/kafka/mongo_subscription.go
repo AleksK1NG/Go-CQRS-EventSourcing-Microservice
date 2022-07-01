@@ -99,7 +99,7 @@ func (s *bankAccountMongoSubscription) handle(ctx context.Context, r *kafka.Read
 		return tracing.TraceWithErr(span, errors.Wrapf(err, "When type: %s, aggregateID: %s", event.GetEventType(), event.GetAggregateID()))
 	}
 
-	s.log.Infof("MONGO PROJECTION HANDLE EVENT: %s", event.String())
+	s.log.Infof("Mongo projection handle event: %s", event.String())
 	return nil
 }
 

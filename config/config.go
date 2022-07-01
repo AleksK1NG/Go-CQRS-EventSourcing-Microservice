@@ -4,7 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/constants"
-	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/elasticsearch"
+	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/elastic"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/es"
 	kafkaClient "github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/kafka"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/logger"
@@ -37,11 +37,11 @@ type Config struct {
 	MongoCollections     MongoCollections        `mapstructure:"mongoCollections" validate:"required"`
 	KafkaPublisherConfig es.KafkaEventsBusConfig `mapstructure:"kafkaPublisherConfig" validate:"required"`
 	Jaeger               *tracing.Config         `mapstructure:"jaeger"`
-	Elastic              elasticsearch.Config    `mapstructure:"elastic"`
 	ElasticIndexes       ElasticIndexes          `mapstructure:"elasticIndexes"`
 	Projections          Projections             `mapstructure:"projections"`
 	Http                 Http                    `mapstructure:"http"`
 	Probes               probes.Config           `mapstructure:"probes"`
+	ElasticSearch        elastic.Config          `mapstructure:"elasticSearch" validate:"required"`
 }
 
 type GRPC struct {
@@ -125,7 +125,7 @@ func InitConfig() (*Config, error) {
 
 	elasticUrl := os.Getenv(constants.ElasticUrl)
 	if elasticUrl != "" {
-		cfg.Elastic.URL = elasticUrl
+		cfg.ElasticSearch.Addresses = []string{elasticUrl}
 	}
 
 	return cfg, nil

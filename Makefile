@@ -13,6 +13,8 @@ dev:
 
 local:
 	@echo Clearing kafka data
+	rm -rf ./es-data01
+	@echo Clearing kafka data
 	rm -rf ./kafka_data
 	@echo Clearing zookeeper data
 	rm -rf ./zookeeper
