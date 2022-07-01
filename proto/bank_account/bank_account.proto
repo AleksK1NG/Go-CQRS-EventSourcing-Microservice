@@ -11,6 +11,11 @@ message Payment {
   google.protobuf.Timestamp timestamp = 2;
 }
 
+message Balance {
+  double amount = 1;
+  string currency = 2;
+}
+
 message BankAccount {
   string id = 1;
   string email = 2;
@@ -18,7 +23,7 @@ message BankAccount {
   string lastName = 4;
   string address = 5;
   string status = 6;
-  double balance = 7;
+  Balance balance = 7;
   google.protobuf.Timestamp createdAt = 8;
   google.protobuf.Timestamp updatedAt = 9;
 }
@@ -38,7 +43,7 @@ message CreateBankAccountResponse {
 message DepositBalanceRequest {
   string id = 1;
   string paymentId = 2;
-  double amount = 3;
+  int64 amount = 3;
 }
 
 message DepositBalanceResponse {}

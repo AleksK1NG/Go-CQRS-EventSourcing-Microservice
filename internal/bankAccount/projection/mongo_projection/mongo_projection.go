@@ -9,6 +9,7 @@ import (
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/es"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/logger"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/tracing"
+	"github.com/Rhymond/go-money"
 	"github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/log"
 	"github.com/pkg/errors"
@@ -67,10 +68,13 @@ func (b *bankAccountMongoProjection) onBankAccountCreated(ctx context.Context, a
 		Address:     event.Address,
 		FirstName:   event.FirstName,
 		LastName:    event.LastName,
-		Balance:     event.Balance,
-		Status:      event.Status,
-		UpdatedAt:   time.Now().UTC(),
-		CreatedAt:   time.Now().UTC(),
+		Balance: domain.Balance{
+			Amount:   event.Balance.AsMajorUnits(),
+			Currency: event.Balance.Currency().Code,
+		},
+		Status:    event.Status,
+		UpdatedAt: time.Now().UTC(),
+		CreatedAt: time.Now().UTC(),
 	}
 
 	err := b.mr.Insert(ctx, projection)
@@ -92,7 +96,7 @@ func (b *bankAccountMongoProjection) onBalanceDeposited(ctx context.Context, agg
 		return tracing.TraceWithErr(span, errors.Wrapf(err, "[onBalanceDeposited] mr.GetByAggregateID aggregateID: %s", aggregateID))
 	}
 
-	projection.Balance += event.Amount
+	projection.Balance.Amount += money.New(event.Amount, money.USD).AsMajorUnits()
 
 	err = b.mr.Update(ctx, projection)
 	if err != nil {

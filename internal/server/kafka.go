@@ -25,7 +25,7 @@ func (a *app) connectKafkaBrokers(ctx context.Context) error {
 		return errors.Wrap(err, "kafkaConn.Brokers")
 	}
 
-	a.log.Infof("(kafka connected) brokers: {%+v}", brokers)
+	a.log.Infof("(kafka connected) brokers: %+v", brokers)
 	return nil
 }
 

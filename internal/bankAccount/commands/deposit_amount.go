@@ -10,9 +10,9 @@ import (
 )
 
 type DepositBalanceCommand struct {
-	AggregateID string  `json:"aggregateID"`
-	Amount      float64 `json:"amount"`
-	PaymentID   string  `json:"paymentID"`
+	AggregateID string `json:"aggregateID"`
+	Amount      int64  `json:"amount"`
+	PaymentID   string `json:"paymentID"`
 }
 
 type DepositBalance interface {

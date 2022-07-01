@@ -29,7 +29,7 @@ func (a *app) connectPostgres(ctx context.Context) error {
 			return errors.Wrap(err, "postgresql.NewPgxConn")
 		}
 		a.pgxConn = pgxConn
-		a.log.Infof("(postgres connected) poolStat: %a", utils.GetPostgresStats(a.pgxConn.Stat()))
+		a.log.Infof("(postgres connected) poolStat: %s", utils.GetPostgresStats(a.pgxConn.Stat()))
 		return nil
 	}, retryOptions...)
 }
