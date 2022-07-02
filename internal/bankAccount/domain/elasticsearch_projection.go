@@ -8,6 +8,7 @@ import (
 type ElasticSearchProjection struct {
 	ID          string    `json:"id" bson:"_id,omitempty"`
 	AggregateID string    `json:"aggregateID" bson:"aggregateID,omitempty"`
+	Version     uint64    `json:"version" bson:"version"`
 	Email       string    `json:"email" bson:"email,omitempty"`
 	Address     string    `json:"address" bson:"address,omitempty"`
 	FirstName   string    `json:"firstName" bson:"firstName,omitempty"`
@@ -19,9 +20,10 @@ type ElasticSearchProjection struct {
 }
 
 func (b *ElasticSearchProjection) String() string {
-	return fmt.Sprintf("ID: %s, AggregateID: %s, Email: %s, Address: %s, FirstName: %s, LastName: %s, Status: %s, Balance: %s,  UpdatedAt: %s, CreatedAt: %s",
+	return fmt.Sprintf("ID: %s, AggregateID: %s, Version: %d, Email: %s, Address: %s, FirstName: %s, LastName: %s, Status: %s, Balance: %s,  UpdatedAt: %s, CreatedAt: %s",
 		b.ID,
 		b.AggregateID,
+		b.Version,
 		b.Email,
 		b.Address,
 		b.FirstName,
