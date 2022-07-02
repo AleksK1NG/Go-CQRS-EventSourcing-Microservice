@@ -48,6 +48,14 @@ message DepositBalanceRequest {
 
 message DepositBalanceResponse {}
 
+message WithdrawBalanceRequest {
+  string id = 1;
+  string paymentId = 2;
+  int64 amount = 3;
+}
+
+message WithdrawBalanceResponse {}
+
 message GetByIdRequest {
   string id = 1;
   bool isOwner = 2;
@@ -75,9 +83,14 @@ message GetBankAccountByStatusResponse {
 }
 
 service bankAccountService {
+
+  // commands
   rpc CreateBankAccount (CreateBankAccountRequest) returns (CreateBankAccountResponse) {};
   rpc DepositBalance (DepositBalanceRequest) returns (DepositBalanceResponse) {};
+  rpc WithdrawBalance (WithdrawBalanceRequest) returns (WithdrawBalanceResponse) {};
   rpc ChangeEmail (ChangeEmailRequest) returns (ChangeEmailResponse) {};
+
+  // queries
   rpc GetById (GetByIdRequest) returns (GetByIdResponse) {};
   rpc GetBankAccountByStatus (GetBankAccountByStatusRequest) returns (GetBankAccountByStatusResponse) {};
 }

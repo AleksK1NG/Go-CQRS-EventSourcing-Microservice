@@ -19,6 +19,7 @@ func NewBankAccountService(log logger.Logger, es es.AggregateStore, mr domain.Mo
 		commands.NewChangeEmailCmdHandler(log, es),
 		commands.NewDepositBalanceCmdHandler(log, es),
 		commands.NewCreateBankAccountCmdHandler(log, es),
+		commands.NewWithdrawBalanceCommandHandler(log, es),
 	)
 
 	newBankAccountQueries := queries.NewBankAccountQueries(

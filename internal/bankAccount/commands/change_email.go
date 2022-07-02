@@ -19,12 +19,12 @@ type ChangeEmail interface {
 }
 
 type changeEmailCmdHandler struct {
-	log logger.Logger
-	es  es.AggregateStore
+	log            logger.Logger
+	aggregateStore es.AggregateStore
 }
 
-func NewChangeEmailCmdHandler(log logger.Logger, es es.AggregateStore) *changeEmailCmdHandler {
-	return &changeEmailCmdHandler{log: log, es: es}
+func NewChangeEmailCmdHandler(log logger.Logger, aggregateStore es.AggregateStore) *changeEmailCmdHandler {
+	return &changeEmailCmdHandler{log: log, aggregateStore: aggregateStore}
 }
 
 func (c *changeEmailCmdHandler) Handle(ctx context.Context, cmd ChangeEmailCommand) error {
@@ -33,7 +33,7 @@ func (c *changeEmailCmdHandler) Handle(ctx context.Context, cmd ChangeEmailComma
 	span.LogFields(log.Object("command", cmd))
 
 	bankAccountAggregate := domain.NewBankAccountAggregate(cmd.AggregateID)
-	err := c.es.Load(ctx, bankAccountAggregate)
+	err := c.aggregateStore.Load(ctx, bankAccountAggregate)
 	if err != nil {
 		return err
 	}
@@ -42,5 +42,5 @@ func (c *changeEmailCmdHandler) Handle(ctx context.Context, cmd ChangeEmailComma
 		return err
 	}
 
-	return c.es.Save(ctx, bankAccountAggregate)
+	return c.aggregateStore.Save(ctx, bankAccountAggregate)
 }

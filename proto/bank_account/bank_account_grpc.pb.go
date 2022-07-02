@@ -22,9 +22,12 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type BankAccountServiceClient interface {
+	// commands
 	CreateBankAccount(ctx context.Context, in *CreateBankAccountRequest, opts ...grpc.CallOption) (*CreateBankAccountResponse, error)
 	DepositBalance(ctx context.Context, in *DepositBalanceRequest, opts ...grpc.CallOption) (*DepositBalanceResponse, error)
+	WithdrawBalance(ctx context.Context, in *WithdrawBalanceRequest, opts ...grpc.CallOption) (*WithdrawBalanceResponse, error)
 	ChangeEmail(ctx context.Context, in *ChangeEmailRequest, opts ...grpc.CallOption) (*ChangeEmailResponse, error)
+	// queries
 	GetById(ctx context.Context, in *GetByIdRequest, opts ...grpc.CallOption) (*GetByIdResponse, error)
 	GetBankAccountByStatus(ctx context.Context, in *GetBankAccountByStatusRequest, opts ...grpc.CallOption) (*GetBankAccountByStatusResponse, error)
 }
@@ -49,6 +52,15 @@ func (c *bankAccountServiceClient) CreateBankAccount(ctx context.Context, in *Cr
 func (c *bankAccountServiceClient) DepositBalance(ctx context.Context, in *DepositBalanceRequest, opts ...grpc.CallOption) (*DepositBalanceResponse, error) {
 	out := new(DepositBalanceResponse)
 	err := c.cc.Invoke(ctx, "/orderService.bankAccountService/DepositBalance", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *bankAccountServiceClient) WithdrawBalance(ctx context.Context, in *WithdrawBalanceRequest, opts ...grpc.CallOption) (*WithdrawBalanceResponse, error) {
+	out := new(WithdrawBalanceResponse)
+	err := c.cc.Invoke(ctx, "/orderService.bankAccountService/WithdrawBalance", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -86,9 +98,12 @@ func (c *bankAccountServiceClient) GetBankAccountByStatus(ctx context.Context, i
 // All implementations should embed UnimplementedBankAccountServiceServer
 // for forward compatibility
 type BankAccountServiceServer interface {
+	// commands
 	CreateBankAccount(context.Context, *CreateBankAccountRequest) (*CreateBankAccountResponse, error)
 	DepositBalance(context.Context, *DepositBalanceRequest) (*DepositBalanceResponse, error)
+	WithdrawBalance(context.Context, *WithdrawBalanceRequest) (*WithdrawBalanceResponse, error)
 	ChangeEmail(context.Context, *ChangeEmailRequest) (*ChangeEmailResponse, error)
+	// queries
 	GetById(context.Context, *GetByIdRequest) (*GetByIdResponse, error)
 	GetBankAccountByStatus(context.Context, *GetBankAccountByStatusRequest) (*GetBankAccountByStatusResponse, error)
 }
@@ -102,6 +117,9 @@ func (UnimplementedBankAccountServiceServer) CreateBankAccount(context.Context, 
 }
 func (UnimplementedBankAccountServiceServer) DepositBalance(context.Context, *DepositBalanceRequest) (*DepositBalanceResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DepositBalance not implemented")
+}
+func (UnimplementedBankAccountServiceServer) WithdrawBalance(context.Context, *WithdrawBalanceRequest) (*WithdrawBalanceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method WithdrawBalance not implemented")
 }
 func (UnimplementedBankAccountServiceServer) ChangeEmail(context.Context, *ChangeEmailRequest) (*ChangeEmailResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ChangeEmail not implemented")
@@ -156,6 +174,24 @@ func _BankAccountService_DepositBalance_Handler(srv interface{}, ctx context.Con
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(BankAccountServiceServer).DepositBalance(ctx, req.(*DepositBalanceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _BankAccountService_WithdrawBalance_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(WithdrawBalanceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(BankAccountServiceServer).WithdrawBalance(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/orderService.bankAccountService/WithdrawBalance",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BankAccountServiceServer).WithdrawBalance(ctx, req.(*WithdrawBalanceRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -228,6 +264,10 @@ var BankAccountService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DepositBalance",
 			Handler:    _BankAccountService_DepositBalance_Handler,
+		},
+		{
+			MethodName: "WithdrawBalance",
+			Handler:    _BankAccountService_WithdrawBalance_Handler,
 		},
 		{
 			MethodName: "ChangeEmail",

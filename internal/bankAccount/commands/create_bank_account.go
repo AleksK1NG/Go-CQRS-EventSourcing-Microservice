@@ -26,12 +26,12 @@ type CreateBankAccount interface {
 }
 
 type createBankAccountCmdHandler struct {
-	log logger.Logger
-	es  es.AggregateStore
+	log            logger.Logger
+	aggregateStore es.AggregateStore
 }
 
-func NewCreateBankAccountCmdHandler(log logger.Logger, es es.AggregateStore) *createBankAccountCmdHandler {
-	return &createBankAccountCmdHandler{log: log, es: es}
+func NewCreateBankAccountCmdHandler(log logger.Logger, aggregateStore es.AggregateStore) *createBankAccountCmdHandler {
+	return &createBankAccountCmdHandler{log: log, aggregateStore: aggregateStore}
 }
 
 func (c *createBankAccountCmdHandler) Handle(ctx context.Context, cmd CreateBankAccountCommand) error {
@@ -39,7 +39,7 @@ func (c *createBankAccountCmdHandler) Handle(ctx context.Context, cmd CreateBank
 	defer span.Finish()
 	span.LogFields(log.Object("command", cmd))
 
-	exists, err := c.es.Exists(ctx, cmd.AggregateID)
+	exists, err := c.aggregateStore.Exists(ctx, cmd.AggregateID)
 	if err != nil {
 		return tracing.TraceWithErr(span, err)
 	}
@@ -53,5 +53,5 @@ func (c *createBankAccountCmdHandler) Handle(ctx context.Context, cmd CreateBank
 		return tracing.TraceWithErr(span, err)
 	}
 
-	return c.es.Save(ctx, bankAccountAggregate)
+	return c.aggregateStore.Save(ctx, bankAccountAggregate)
 }

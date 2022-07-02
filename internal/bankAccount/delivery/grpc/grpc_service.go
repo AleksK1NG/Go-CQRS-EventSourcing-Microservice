@@ -70,6 +70,26 @@ func (g *grpcService) DepositBalance(ctx context.Context, request *bankAccountSe
 	return new(bankAccountService.DepositBalanceResponse), nil
 }
 
+func (g *grpcService) WithdrawBalance(ctx context.Context, request *bankAccountService.WithdrawBalanceRequest) (*bankAccountService.WithdrawBalanceResponse, error) {
+	ctx, span := tracing.StartGrpcServerTracerSpan(ctx, "grpcService.WithdrawBalance")
+	defer span.Finish()
+	span.LogFields(log.String("req", request.String()))
+
+	command := commands.WithdrawBalanceCommand{
+		AggregateID: request.GetId(),
+		Amount:      request.GetAmount(),
+		PaymentID:   request.GetPaymentId(),
+	}
+
+	err := g.bs.Commands.WithdrawBalance.Handle(ctx, command)
+	if err != nil {
+		g.log.Errorf("(WithdrawBalance.Handle) err: %v", err)
+		return nil, grpc_errors.ErrResponse(tracing.TraceWithErr(span, err))
+	}
+
+	return new(bankAccountService.WithdrawBalanceResponse), nil
+}
+
 func (g *grpcService) ChangeEmail(ctx context.Context, request *bankAccountService.ChangeEmailRequest) (*bankAccountService.ChangeEmailResponse, error) {
 	ctx, span := tracing.StartGrpcServerTracerSpan(ctx, "grpcService.ChangeEmail")
 	defer span.Finish()

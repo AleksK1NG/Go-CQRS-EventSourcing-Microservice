@@ -51,6 +51,9 @@ func (a *BankAccountAggregate) When(event any) error {
 	case *events.BalanceDepositedEventV1:
 		return a.BankAccount.DepositBalance(evt.Amount)
 
+	case *events.BalanceWithdrawnEventV1:
+		return a.BankAccount.WithdrawBalance(evt.Amount)
+
 	case *events.EmailChangedEventV1:
 		a.BankAccount.Email = evt.Email
 		return nil
@@ -64,6 +67,10 @@ func (a *BankAccountAggregate) CreateNewBankAccount(ctx context.Context, email, 
 	span, _ := opentracing.StartSpanFromContext(ctx, "BankAccountAggregate.CreateNewBankAccount")
 	defer span.Finish()
 	span.LogFields(log.String("AggregateID", a.GetID()))
+
+	if amount < 0 {
+		return errors.Wrapf(bankAccountErrors.ErrInvalidBalanceAmount, "amount: %d", amount)
+	}
 
 	metaDataBytes, err := serializer.Marshal(tracing.ExtractTextMapCarrier(span.Context()))
 	if err != nil {
@@ -98,6 +105,38 @@ func (a *BankAccountAggregate) DepositBalance(ctx context.Context, amount int64,
 	}
 
 	event := &events.BalanceDepositedEventV1{
+		Amount:    amount,
+		PaymentID: paymentID,
+		Metadata:  metaDataBytes,
+	}
+
+	return a.Apply(event)
+}
+
+func (a *BankAccountAggregate) WithdrawBalance(ctx context.Context, amount int64, paymentID string) error {
+	span, _ := opentracing.StartSpanFromContext(ctx, "BankAccountAggregate.WithdrawBalance")
+	defer span.Finish()
+	span.LogFields(log.String("AggregateID", a.GetID()))
+
+	if amount <= 0 {
+		return errors.Wrapf(bankAccountErrors.ErrInvalidBalanceAmount, "amount: %d", amount)
+	}
+
+	balance, err := money.New(a.BankAccount.Balance.Amount(), money.USD).Subtract(money.New(amount, money.USD))
+	if err != nil {
+		return errors.Wrapf(err, "Balance.Subtract amount: %d", amount)
+	}
+
+	if balance.IsNegative() {
+		return errors.Wrapf(bankAccountErrors.ErrNotEnoughtBalance, "amount: %d", amount)
+	}
+
+	metaDataBytes, err := serializer.Marshal(tracing.ExtractTextMapCarrier(span.Context()))
+	if err != nil {
+		return errors.Wrap(err, "serializer.Marshal")
+	}
+
+	event := &events.BalanceWithdrawnEventV1{
 		Amount:    amount,
 		PaymentID: paymentID,
 		Metadata:  metaDataBytes,

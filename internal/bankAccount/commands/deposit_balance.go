@@ -20,12 +20,12 @@ type DepositBalance interface {
 }
 
 type depositBalanceCmdHandler struct {
-	log logger.Logger
-	es  es.AggregateStore
+	log            logger.Logger
+	aggregateStore es.AggregateStore
 }
 
-func NewDepositBalanceCmdHandler(log logger.Logger, es es.AggregateStore) *depositBalanceCmdHandler {
-	return &depositBalanceCmdHandler{log: log, es: es}
+func NewDepositBalanceCmdHandler(log logger.Logger, aggregateStore es.AggregateStore) *depositBalanceCmdHandler {
+	return &depositBalanceCmdHandler{log: log, aggregateStore: aggregateStore}
 }
 
 func (c *depositBalanceCmdHandler) Handle(ctx context.Context, cmd DepositBalanceCommand) error {
@@ -34,7 +34,7 @@ func (c *depositBalanceCmdHandler) Handle(ctx context.Context, cmd DepositBalanc
 	span.LogFields(log.Object("command", cmd))
 
 	bankAccountAggregate := domain.NewBankAccountAggregate(cmd.AggregateID)
-	err := c.es.Load(ctx, bankAccountAggregate)
+	err := c.aggregateStore.Load(ctx, bankAccountAggregate)
 	if err != nil {
 		return err
 	}
@@ -43,5 +43,5 @@ func (c *depositBalanceCmdHandler) Handle(ctx context.Context, cmd DepositBalanc
 		return err
 	}
 
-	return c.es.Save(ctx, bankAccountAggregate)
+	return c.aggregateStore.Save(ctx, bankAccountAggregate)
 }
