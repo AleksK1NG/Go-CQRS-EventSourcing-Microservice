@@ -10,6 +10,7 @@ import (
 	"github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/log"
 	"github.com/pkg/errors"
+	"time"
 )
 
 type elasticRepo struct {
@@ -18,7 +19,7 @@ type elasticRepo struct {
 	client *elasticsearch.Client
 }
 
-func NewElasticRepo(log logger.Logger, cfg *config.Config, client *elasticsearch.Client) *elasticRepo {
+func NewElasticRepository(log logger.Logger, cfg *config.Config, client *elasticsearch.Client) *elasticRepo {
 	return &elasticRepo{log: log, cfg: cfg, client: client}
 }
 
@@ -45,6 +46,8 @@ func (e *elasticRepo) Update(ctx context.Context, projection *domain.ElasticSear
 	span, ctx := opentracing.StartSpanFromContext(ctx, "elasticRepo.Update")
 	defer span.Finish()
 	span.LogFields(log.String("aggregateID", projection.AggregateID))
+
+	projection.UpdatedAt = time.Now().UTC()
 
 	response, err := esclient.Update(ctx, e.client, e.cfg.ElasticIndexes.BankAccounts, projection.AggregateID, projection)
 	if err != nil {

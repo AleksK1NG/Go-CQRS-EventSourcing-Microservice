@@ -39,29 +39,35 @@ func (e *elasticProjection) When(ctx context.Context, esEvent es.Event) error {
 	switch event := deserializedEvent.(type) {
 
 	case *events.BankAccountCreatedEventV1:
-		return e.onBankAccountCreated(ctx, esEvent.GetAggregateID(), event)
+		return e.onBankAccountCreated(ctx, esEvent, event)
 
 	case *events.BalanceDepositedEventV1:
-		return e.onBalanceDeposited(ctx, esEvent.GetAggregateID(), event)
+		return e.onBalanceDeposited(ctx, esEvent, event)
 
 	case *events.BalanceWithdrawnEventV1:
-		return e.onBalanceWithdrawn(ctx, esEvent.GetAggregateID(), event)
+		return e.onBalanceWithdrawn(ctx, esEvent, event)
 
 	case *events.EmailChangedEventV1:
-		return e.onEmailChanged(ctx, esEvent.GetAggregateID(), event)
+		return e.onEmailChanged(ctx, esEvent, event)
 
 	default:
 		return errors.Wrapf(bankAccountErrors.ErrUnknownEventType, "esEvent: %s", esEvent.String())
 	}
 }
 
-func (e *elasticProjection) onBankAccountCreated(ctx context.Context, aggregateID string, event *events.BankAccountCreatedEventV1) error {
+func (e *elasticProjection) onBankAccountCreated(ctx context.Context, esEvent es.Event, event *events.BankAccountCreatedEventV1) error {
 	span, ctx := opentracing.StartSpanFromContext(ctx, "elasticProjection.onBankAccountCreated")
 	defer span.Finish()
-	span.LogFields(log.String("aggregateID", aggregateID))
+	span.LogFields(log.String("aggregateID", esEvent.GetAggregateID()))
+
+	if esEvent.GetVersion() != 1 {
+		return errors.Wrapf(es.ErrInvalidEventVersion, "type: %s, version: %d", esEvent.GetEventType(), esEvent.GetVersion())
+	}
 
 	projection := &domain.ElasticSearchProjection{
-		AggregateID: aggregateID,
+		ID:          esEvent.GetAggregateID(),
+		AggregateID: esEvent.GetAggregateID(),
+		Version:     esEvent.GetVersion(),
 		Email:       event.Email,
 		Address:     event.Address,
 		FirstName:   event.FirstName,
@@ -77,69 +83,91 @@ func (e *elasticProjection) onBankAccountCreated(ctx context.Context, aggregateI
 
 	err := e.elasticSearchRepo.Index(ctx, projection)
 	if err != nil {
-		return tracing.TraceWithErr(span, errors.Wrapf(err, "[onBalanceDeposited] elasticSearchRepo.Index aggregateID: %s", aggregateID))
+		return tracing.TraceWithErr(span, errors.Wrapf(err, "[onBalanceDeposited] elasticSearchRepo.Index aggregateID: %s", esEvent.GetAggregateID()))
 	}
 
 	e.log.Infof("ElasticSearch when [onBankAccountCreated] projection: %s", projection)
 	return nil
 }
 
-func (e *elasticProjection) onBalanceDeposited(ctx context.Context, aggregateID string, event *events.BalanceDepositedEventV1) error {
+func (e *elasticProjection) onBalanceDeposited(ctx context.Context, esEvent es.Event, event *events.BalanceDepositedEventV1) error {
 	span, ctx := opentracing.StartSpanFromContext(ctx, "elasticProjection.onBalanceDeposited")
 	defer span.Finish()
-	span.LogFields(log.String("aggregateID", aggregateID))
+	span.LogFields(log.String("aggregateID", esEvent.GetAggregateID()))
 
-	projection, err := e.elasticSearchRepo.GetByAggregateID(ctx, aggregateID)
+	projection, err := e.elasticSearchRepo.GetByAggregateID(ctx, esEvent.GetAggregateID())
 	if err != nil {
-		return tracing.TraceWithErr(span, errors.Wrapf(err, "[onBalanceDeposited] elasticSearchRepo.GetByAggregateID aggregateID: %s", aggregateID))
+		return tracing.TraceWithErr(span, errors.Wrapf(err, "[onBalanceDeposited] elasticSearchRepo.GetByAggregateID aggregateID: %s", esEvent.GetAggregateID()))
+	}
+
+	if err := e.validateEventVersion(projection.Version, esEvent); err != nil {
+		return tracing.TraceWithErr(span, err)
 	}
 
 	projection.Balance.Amount += money.New(event.Amount, money.USD).AsMajorUnits()
+	projection.Version = esEvent.GetVersion()
 
 	if err := e.elasticSearchRepo.Update(ctx, projection); err != nil {
-		return tracing.TraceWithErr(span, errors.Wrapf(err, "[onBalanceWithdrawn] elasticSearchRepo.Update aggregateID: %s", aggregateID))
+		return tracing.TraceWithErr(span, errors.Wrapf(err, "[onBalanceWithdrawn] elasticSearchRepo.Update aggregateID: %s", esEvent.GetAggregateID()))
 	}
 
 	e.log.Infof("ElasticSearch when [onBalanceDeposited] projection: %s", projection)
 	return nil
 }
 
-func (e *elasticProjection) onBalanceWithdrawn(ctx context.Context, aggregateID string, event *events.BalanceWithdrawnEventV1) error {
+func (e *elasticProjection) onBalanceWithdrawn(ctx context.Context, esEvent es.Event, event *events.BalanceWithdrawnEventV1) error {
 	span, ctx := opentracing.StartSpanFromContext(ctx, "elasticProjection.onBalanceWithdrawn")
 	defer span.Finish()
-	span.LogFields(log.String("aggregateID", aggregateID))
+	span.LogFields(log.String("aggregateID", esEvent.GetAggregateID()))
 
-	projection, err := e.elasticSearchRepo.GetByAggregateID(ctx, aggregateID)
+	projection, err := e.elasticSearchRepo.GetByAggregateID(ctx, esEvent.GetAggregateID())
 	if err != nil {
-		return tracing.TraceWithErr(span, errors.Wrapf(err, "[onBalanceWithdrawn] elasticSearchRepo.GetByAggregateID aggregateID: %s", aggregateID))
+		return tracing.TraceWithErr(span, errors.Wrapf(err, "[onBalanceWithdrawn] elasticSearchRepo.GetByAggregateID aggregateID: %s", esEvent.GetAggregateID()))
+	}
+
+	if err := e.validateEventVersion(projection.Version, esEvent); err != nil {
+		return tracing.TraceWithErr(span, err)
 	}
 
 	projection.Balance.Amount -= money.New(event.Amount, money.USD).AsMajorUnits()
+	projection.Version = esEvent.GetVersion()
 
 	if err := e.elasticSearchRepo.Update(ctx, projection); err != nil {
-		return tracing.TraceWithErr(span, errors.Wrapf(err, "[onBalanceWithdrawn] elasticSearchRepo.Update aggregateID: %s", aggregateID))
+		return tracing.TraceWithErr(span, errors.Wrapf(err, "[onBalanceWithdrawn] elasticSearchRepo.Update aggregateID: %s", esEvent.GetAggregateID()))
 	}
 
 	e.log.Infof("ElasticSearch when [onBalanceWithdrawn] projection: %s", projection)
 	return nil
 }
 
-func (e *elasticProjection) onEmailChanged(ctx context.Context, aggregateID string, event *events.EmailChangedEventV1) error {
+func (e *elasticProjection) onEmailChanged(ctx context.Context, esEvent es.Event, event *events.EmailChangedEventV1) error {
 	span, ctx := opentracing.StartSpanFromContext(ctx, "elasticProjection.onEmailChanged")
 	defer span.Finish()
-	span.LogFields(log.String("aggregateID", aggregateID))
+	span.LogFields(log.String("aggregateID", esEvent.GetAggregateID()))
 
-	projection, err := e.elasticSearchRepo.GetByAggregateID(ctx, aggregateID)
+	projection, err := e.elasticSearchRepo.GetByAggregateID(ctx, esEvent.GetAggregateID())
 	if err != nil {
-		return tracing.TraceWithErr(span, errors.Wrapf(err, "[onEmailChanged] elasticSearchRepo.GetByAggregateID aggregateID: %s", aggregateID))
+		return tracing.TraceWithErr(span, errors.Wrapf(err, "[onEmailChanged] elasticSearchRepo.GetByAggregateID aggregateID: %s", esEvent.GetAggregateID()))
+	}
+
+	if err := e.validateEventVersion(projection.Version, esEvent); err != nil {
+		return tracing.TraceWithErr(span, err)
 	}
 
 	projection.Email = event.Email
+	projection.Version = esEvent.GetVersion()
 
 	if err := e.elasticSearchRepo.Update(ctx, projection); err != nil {
-		return tracing.TraceWithErr(span, errors.Wrapf(err, "[onEmailChanged] elasticSearchRepo.Update aggregateID: %s", aggregateID))
+		return tracing.TraceWithErr(span, errors.Wrapf(err, "[onEmailChanged] elasticSearchRepo.Update aggregateID: %s", esEvent.GetAggregateID()))
 	}
 
 	e.log.Infof("ElasticSearch when [onEmailChanged] projection: %s", projection)
+	return nil
+}
+
+func (e *elasticProjection) validateEventVersion(version uint64, esEvent es.Event) error {
+	if version != esEvent.GetVersion()-1 {
+		return errors.Wrapf(es.ErrInvalidEventVersion, "type: %s, version: %d", esEvent.GetEventType(), esEvent.GetVersion())
+	}
 	return nil
 }

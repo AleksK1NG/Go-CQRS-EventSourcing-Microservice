@@ -128,7 +128,7 @@ func (s *elasticSearchSubscription) recreateProjection(ctx context.Context, even
 		return tracing.TraceWithErr(span, errors.Wrapf(err, "When as.Load type: %s, aggregateID: %s", event.GetEventType(), event.GetAggregateID()))
 	}
 
-	err = s.elasticSearchRepo.Index(ctx, mappers.BankAccountToElasticProjection(bankAccountAggregate.BankAccount))
+	err = s.elasticSearchRepo.Index(ctx, mappers.BankAccountToElasticProjection(bankAccountAggregate))
 	if err != nil {
 		s.log.Errorf("ElasticSearchSubscription Index err: %v", err)
 		return tracing.TraceWithErr(span, errors.Wrapf(err, "When Index type: %s, aggregateID: %s", event.GetEventType(), event.GetAggregateID()))

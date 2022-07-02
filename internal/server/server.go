@@ -3,9 +3,12 @@ package server
 import (
 	"context"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/config"
+	"github.com/AleksK1NG/go-cqrs-eventsourcing/internal/bankAccount/delivery/kafka/elasticsearch_subscription"
 	bankAccountMongoSubscription "github.com/AleksK1NG/go-cqrs-eventsourcing/internal/bankAccount/delivery/kafka/mongo_subscription"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/internal/bankAccount/domain"
+	"github.com/AleksK1NG/go-cqrs-eventsourcing/internal/bankAccount/projection/elasticsearch_projection"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/internal/bankAccount/projection/mongo_projection"
+	"github.com/AleksK1NG/go-cqrs-eventsourcing/internal/bankAccount/repository/elasticsearch_repository"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/internal/bankAccount/repository/mongo_repository"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/internal/bankAccount/service"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/internal/metrics"
@@ -127,17 +130,22 @@ func (a *app) Run() error {
 	eventSerializer := domain.NewEventSerializer()
 	eventBus := es.NewKafkaEventsBus(kafkaProducer, a.cfg.KafkaPublisherConfig)
 	eventStore := es.NewPgEventStore(a.log, a.cfg.EventSourcingConfig, a.pgxConn, eventBus, eventSerializer)
-	bankAccountMongoRepository := mongo_repository.NewBankAccountMongoRepository(a.log, &a.cfg, a.mongoClient)
-	bankAccountMongoProjection := mongo_projection.NewBankAccountMongoProjection(a.log, &a.cfg, eventSerializer, bankAccountMongoRepository)
-	a.bs = service.NewBankAccountService(a.log, eventStore, bankAccountMongoRepository)
+
+	mongoRepository := mongo_repository.NewBankAccountMongoRepository(a.log, &a.cfg, a.mongoClient)
+	mongoProjection := mongo_projection.NewBankAccountMongoProjection(a.log, &a.cfg, eventSerializer, mongoRepository)
+
+	elasticSearchRepository := elasticsearch_repository.NewElasticRepository(a.log, &a.cfg, a.elasticClient)
+	elasticSearchProjection := elasticsearch_projection.NewElasticProjection(a.log, &a.cfg, eventSerializer, elasticSearchRepository)
+
+	a.bs = service.NewBankAccountService(a.log, eventStore, mongoRepository)
 
 	mongoSubscription := bankAccountMongoSubscription.NewBankAccountMongoSubscription(
 		a.log,
 		&a.cfg,
 		a.bs,
-		bankAccountMongoProjection,
+		mongoProjection,
 		eventSerializer,
-		bankAccountMongoRepository,
+		mongoRepository,
 		eventStore,
 	)
 
@@ -151,6 +159,31 @@ func (a *app) Run() error {
 		)
 		if err != nil {
 			a.log.Errorf("(mongoConsumerGroup ConsumeTopicWithErrGroup) err: %v", err)
+			cancel()
+			return
+		}
+	}()
+
+	elasticSearchSubscription := elasticsearch_subscription.NewElasticSearchSubscription(
+		a.log,
+		&a.cfg,
+		a.bs,
+		elasticSearchProjection,
+		eventSerializer,
+		elasticSearchRepository,
+		eventStore,
+	)
+
+	elasticSearchConsumerGroup := kafkaClient.NewConsumerGroup(a.cfg.Kafka.Brokers, a.cfg.Projections.ElasticGroup, a.log)
+	go func() {
+		err := elasticSearchConsumerGroup.ConsumeTopicWithErrGroup(
+			ctx,
+			a.getConsumerGroupTopics(),
+			a.cfg.Projections.ElasticSubscriptionPoolSize,
+			elasticSearchSubscription.ProcessMessagesErrGroup,
+		)
+		if err != nil {
+			a.log.Errorf("(elasticSearchConsumerGroup ConsumeTopicWithErrGroup) err: %v", err)
 			cancel()
 			return
 		}
