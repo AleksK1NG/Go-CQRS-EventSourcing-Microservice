@@ -147,6 +147,7 @@ func (a *app) Run() error {
 		eventSerializer,
 		mongoRepository,
 		eventStore,
+		eventBus,
 	)
 
 	mongoConsumerGroup := kafkaClient.NewConsumerGroup(a.cfg.Kafka.Brokers, a.cfg.Projections.MongoGroup, a.log)
@@ -172,6 +173,7 @@ func (a *app) Run() error {
 		eventSerializer,
 		elasticSearchRepository,
 		eventStore,
+		eventBus,
 	)
 
 	elasticSearchConsumerGroup := kafkaClient.NewConsumerGroup(a.cfg.Kafka.Brokers, a.cfg.Projections.ElasticGroup, a.log)

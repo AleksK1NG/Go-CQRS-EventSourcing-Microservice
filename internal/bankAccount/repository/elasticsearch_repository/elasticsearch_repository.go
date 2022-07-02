@@ -10,6 +10,7 @@ import (
 	"github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/log"
 	"github.com/pkg/errors"
+	"net/http"
 	"time"
 )
 
@@ -74,8 +75,8 @@ func (e *elasticRepo) DeleteByAggregateID(ctx context.Context, aggregateID strin
 	}
 	defer response.Body.Close()
 
-	if response.IsError() {
-		return errors.Wrapf(errors.New("ElasticSearch request err"), "response.IsError id: %s", aggregateID)
+	if response.IsError() && response.StatusCode != http.StatusNotFound {
+		return errors.Wrapf(errors.New("ElasticSearch delete"), "response.IsError aggregateID: %s, status: %s", aggregateID, response.Status())
 	}
 
 	e.log.Infof("ElasticSearch delete result: %s", response.String())

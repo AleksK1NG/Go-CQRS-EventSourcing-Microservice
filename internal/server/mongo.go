@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/constants"
 	serviceErrors "github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/service_errors"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/utils"
 	"go.mongodb.org/mongo-driver/bson"
@@ -18,11 +17,17 @@ func (a *app) initMongoDBCollections(ctx context.Context) {
 		}
 	}
 
-	indexOptions := options.Index().SetSparse(true).SetUnique(true)
-	index, err := a.mongoClient.Database(a.cfg.Mongo.Db).Collection(a.cfg.MongoCollections.BankAccounts).Indexes().CreateOne(ctx, mongo.IndexModel{
-		Keys:    bson.D{{Key: constants.BankAccountIndex, Value: 1}},
-		Options: indexOptions,
-	})
+	indexOptions := options.Index().
+		SetSparse(true).
+		SetUnique(true)
+
+	index, err := a.mongoClient.Database(a.cfg.Mongo.Db).
+		Collection(a.cfg.MongoCollections.BankAccounts).
+		Indexes().
+		CreateOne(ctx, mongo.IndexModel{
+			Keys:    bson.D{{Key: "aggregateID", Value: 1}},
+			Options: indexOptions,
+		})
 	if err != nil && !utils.CheckErrForMessagesCaseInSensitive(err, serviceErrors.ErrMsgAlreadyExists) {
 		a.log.Warnf("(CreateOne) err: %v", err)
 	}

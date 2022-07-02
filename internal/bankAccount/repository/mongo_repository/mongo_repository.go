@@ -89,15 +89,14 @@ func (b *bankAccountMongoRepository) DeleteByAggregateID(ctx context.Context, ag
 	span.LogFields(log.String("aggregateID", aggregateID))
 
 	filter := bson.M{constants.MongoAggregateID: aggregateID}
-	ops := options.FindOneAndDelete()
-	ops.SetMaxTime(time.Second * 3)
+	ops := options.Delete()
 
-	err := b.bankAccountsCollection().FindOneAndDelete(ctx, filter, ops).Err()
+	result, err := b.bankAccountsCollection().DeleteOne(ctx, filter, ops)
 	if err != nil {
 		return tracing.TraceWithErr(span, errors.Wrapf(err, "DeleteByAggregateID [FindOneAndDelete] aggregateID: %s", aggregateID))
 	}
 
-	b.log.Debugf("[DeleteByAggregateID] result AggregateID: %s", aggregateID)
+	b.log.Debugf("[DeleteByAggregateID] result AggregateID: %s, deleteCount: %d", aggregateID, result.DeletedCount)
 	return nil
 }
 
