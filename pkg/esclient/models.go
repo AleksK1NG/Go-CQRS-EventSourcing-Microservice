@@ -40,3 +40,10 @@ type SearchListResponse[T any] struct {
 	List  []T   `json:"list"`
 	Total int64 `json:"total"`
 }
+
+type SearchOptions struct {
+	Size   int
+	From   int
+	Sort   []string
+	Fields []string
+}

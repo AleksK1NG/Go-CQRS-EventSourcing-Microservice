@@ -93,14 +93,7 @@ func (e *elasticRepo) GetByAggregateID(ctx context.Context, aggregateID string) 
 	return response.Source, nil
 }
 
-type SearchOptions struct {
-	Size   int
-	From   int
-	Sort   []string
-	Fields []string
-}
-
-func (e *elasticRepo) Search(ctx context.Context, term string, options SearchOptions) (*esclient.SearchListResponse[*domain.ElasticSearchProjection], error) {
+func (e *elasticRepo) Search(ctx context.Context, term string, options esclient.SearchOptions) (*esclient.SearchListResponse[*domain.ElasticSearchProjection], error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, "elasticRepo.Search")
 	defer span.Finish()
 	span.LogFields(log.String("term", term))
