@@ -17,23 +17,23 @@ import (
 )
 
 type bankAccountMongoProjection struct {
-	log        logger.Logger
-	cfg        *config.Config
-	serializer es.Serializer
-	mr         domain.MongoRepository
+	log             logger.Logger
+	cfg             *config.Config
+	serializer      es.Serializer
+	mongoRepository domain.MongoRepository
 }
 
 func NewBankAccountMongoProjection(
 	log logger.Logger,
 	cfg *config.Config,
 	serializer es.Serializer,
-	mr domain.MongoRepository,
+	mongoRepository domain.MongoRepository,
 ) *bankAccountMongoProjection {
-	return &bankAccountMongoProjection{log: log, cfg: cfg, serializer: serializer, mr: mr}
+	return &bankAccountMongoProjection{log: log, cfg: cfg, serializer: serializer, mongoRepository: mongoRepository}
 }
 
 func (b *bankAccountMongoProjection) When(ctx context.Context, esEvent es.Event) error {
-	span, ctx := opentracing.StartSpanFromContext(ctx, "bankAccountMongoProjection.bankAccountMongoProjection")
+	span, ctx := opentracing.StartSpanFromContext(ctx, "bankAccountMongoProjection.When")
 	defer span.Finish()
 
 	deserializedEvent, err := b.serializer.DeserializeEvent(esEvent)
@@ -80,9 +80,9 @@ func (b *bankAccountMongoProjection) onBankAccountCreated(ctx context.Context, a
 		CreatedAt: time.Now().UTC(),
 	}
 
-	err := b.mr.Insert(ctx, projection)
+	err := b.mongoRepository.Insert(ctx, projection)
 	if err != nil {
-		return tracing.TraceWithErr(span, errors.Wrapf(err, "[onBankAccountCreated] mr.Insert aggregateID: %s", aggregateID))
+		return tracing.TraceWithErr(span, errors.Wrapf(err, "[onBankAccountCreated] mongoRepository.Insert aggregateID: %s", aggregateID))
 	}
 
 	b.log.Infof("[onBankAccountCreated] projection: %#v", projection)
@@ -94,16 +94,16 @@ func (b *bankAccountMongoProjection) onBalanceDeposited(ctx context.Context, agg
 	defer span.Finish()
 	span.LogFields(log.String("aggregateID", aggregateID))
 
-	projection, err := b.mr.GetByAggregateID(ctx, aggregateID)
+	projection, err := b.mongoRepository.GetByAggregateID(ctx, aggregateID)
 	if err != nil {
-		return tracing.TraceWithErr(span, errors.Wrapf(err, "[onBalanceDeposited] mr.GetByAggregateID aggregateID: %s", aggregateID))
+		return tracing.TraceWithErr(span, errors.Wrapf(err, "[onBalanceDeposited] mongoRepository.GetByAggregateID aggregateID: %s", aggregateID))
 	}
 
 	projection.Balance.Amount += money.New(event.Amount, money.USD).AsMajorUnits()
 
-	err = b.mr.Update(ctx, projection)
+	err = b.mongoRepository.Update(ctx, projection)
 	if err != nil {
-		return tracing.TraceWithErr(span, errors.Wrapf(err, "[onBalanceDeposited] mr.Update aggregateID: %s", aggregateID))
+		return tracing.TraceWithErr(span, errors.Wrapf(err, "[onBalanceDeposited] mongoRepository.Update aggregateID: %s", aggregateID))
 	}
 
 	b.log.Infof("[onBalanceDeposited] projection: %#v", projection)
@@ -115,16 +115,16 @@ func (b *bankAccountMongoProjection) onBalanceWithdrawn(ctx context.Context, agg
 	defer span.Finish()
 	span.LogFields(log.String("aggregateID", aggregateID))
 
-	projection, err := b.mr.GetByAggregateID(ctx, aggregateID)
+	projection, err := b.mongoRepository.GetByAggregateID(ctx, aggregateID)
 	if err != nil {
-		return tracing.TraceWithErr(span, errors.Wrapf(err, "[onBalanceWithdrawn] mr.GetByAggregateID aggregateID: %s", aggregateID))
+		return tracing.TraceWithErr(span, errors.Wrapf(err, "[onBalanceWithdrawn] mongoRepository.GetByAggregateID aggregateID: %s", aggregateID))
 	}
 
 	projection.Balance.Amount -= money.New(event.Amount, money.USD).AsMajorUnits()
 
-	err = b.mr.Update(ctx, projection)
+	err = b.mongoRepository.Update(ctx, projection)
 	if err != nil {
-		return tracing.TraceWithErr(span, errors.Wrapf(err, "[onBalanceWithdrawn] mr.Update aggregateID: %s", aggregateID))
+		return tracing.TraceWithErr(span, errors.Wrapf(err, "[onBalanceWithdrawn] mongoRepository.Update aggregateID: %s", aggregateID))
 	}
 
 	b.log.Infof("[onBalanceWithdrawn] projection: %#v", projection)
@@ -136,16 +136,16 @@ func (b *bankAccountMongoProjection) onEmailChanged(ctx context.Context, aggrega
 	defer span.Finish()
 	span.LogFields(log.String("aggregateID", aggregateID))
 
-	projection, err := b.mr.GetByAggregateID(ctx, aggregateID)
+	projection, err := b.mongoRepository.GetByAggregateID(ctx, aggregateID)
 	if err != nil {
-		return tracing.TraceWithErr(span, errors.Wrapf(err, "[onEmailChanged] mr.GetByAggregateID aggregateID: %s", aggregateID))
+		return tracing.TraceWithErr(span, errors.Wrapf(err, "[onEmailChanged] mongoRepository.GetByAggregateID aggregateID: %s", aggregateID))
 	}
 
 	projection.Email = event.Email
 
-	err = b.mr.Update(ctx, projection)
+	err = b.mongoRepository.Update(ctx, projection)
 	if err != nil {
-		return tracing.TraceWithErr(span, errors.Wrapf(err, "[onEmailChanged] mr.Update aggregateID: %s", aggregateID))
+		return tracing.TraceWithErr(span, errors.Wrapf(err, "[onEmailChanged] mongoRepository.Update aggregateID: %s", aggregateID))
 	}
 
 	b.log.Infof("[onEmailChanged] projection: %#v", projection)
