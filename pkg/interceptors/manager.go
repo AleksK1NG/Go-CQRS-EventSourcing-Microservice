@@ -52,7 +52,6 @@ func (im *interceptorManager) Logger(
 	im.log.GrpcMiddlewareAccessLogger(info.FullMethod, time.Since(start), md, err)
 	if im.metricsCb != nil {
 		im.metricsCb(err)
-
 	}
 	return reply, err
 }
