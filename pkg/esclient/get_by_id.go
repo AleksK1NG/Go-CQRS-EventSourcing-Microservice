@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/elastic/go-elasticsearch/v8/esapi"
+	"github.com/pkg/errors"
 )
 
 func GetByID[T any, V GetResponse[T]](ctx context.Context, transport esapi.Transport, index, documentID string) (*V, error) {
@@ -18,6 +19,10 @@ func GetByID[T any, V GetResponse[T]](ctx context.Context, transport esapi.Trans
 		return new(V), err
 	}
 	defer response.Body.Close()
+
+	if response.IsError() {
+		return nil, errors.Wrapf(errors.New("ElasticSearch request err"), "response.IsError id: %s", documentID)
+	}
 
 	var getResponse V
 	if err := json.NewDecoder(response.Body).Decode(&getResponse); err != nil {
