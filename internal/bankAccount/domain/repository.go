@@ -2,7 +2,6 @@ package domain
 
 import (
 	"context"
-	"github.com/AleksK1NG/go-cqrs-eventsourcing/internal/bankAccount/repository/elasticsearch_repository"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/esclient"
 )
 
@@ -21,5 +20,5 @@ type ElasticSearchRepository interface {
 	DeleteByAggregateID(ctx context.Context, aggregateID string) error
 
 	GetByAggregateID(ctx context.Context, aggregateID string) (*ElasticSearchProjection, error)
-	Search(ctx context.Context, term string, options elasticsearch_repository.SearchOptions) (*esclient.SearchListResponse[*ElasticSearchProjection], error)
+	Search(ctx context.Context, term string, options esclient.SearchOptions) (*esclient.SearchListResponse[*ElasticSearchProjection], error)
 }
