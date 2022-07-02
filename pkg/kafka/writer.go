@@ -8,7 +8,7 @@ import (
 
 // NewWriter create new configured kafka writer
 func NewWriter(brokers []string, errLogger kafka.Logger) *kafka.Writer {
-	w := &kafka.Writer{
+	return &kafka.Writer{
 		Addr:         kafka.TCP(brokers...),
 		Balancer:     &kafka.LeastBytes{},
 		RequiredAcks: kafka.RequireAll,
@@ -21,12 +21,11 @@ func NewWriter(brokers []string, errLogger kafka.Logger) *kafka.Writer {
 		BatchSize:    batchSize,
 		Async:        false,
 	}
-	return w
 }
 
 // NewAsyncWriter create new configured kafka async writer
 func NewAsyncWriter(brokers []string, errLogger kafka.Logger, log logger.Logger) *kafka.Writer {
-	w := &kafka.Writer{
+	return &kafka.Writer{
 		Addr:         kafka.TCP(brokers...),
 		Balancer:     &kafka.LeastBytes{},
 		RequiredAcks: kafka.RequireAll,
@@ -43,14 +42,13 @@ func NewAsyncWriter(brokers []string, errLogger kafka.Logger, log logger.Logger)
 			}
 		},
 	}
-	return w
 }
 
 type AsyncWriterCallback func(messages []kafka.Message) error
 
 // NewAsyncWriterWithCallback create new configured kafka async writer
 func NewAsyncWriterWithCallback(brokers []string, errLogger kafka.Logger, log logger.Logger, cb AsyncWriterCallback) *kafka.Writer {
-	w := &kafka.Writer{
+	return &kafka.Writer{
 		Addr:         kafka.TCP(brokers...),
 		Balancer:     &kafka.LeastBytes{},
 		RequiredAcks: kafka.RequireAll,
@@ -71,7 +69,6 @@ func NewAsyncWriterWithCallback(brokers []string, errLogger kafka.Logger, log lo
 			}
 		},
 	}
-	return w
 }
 
 // NewRequireNoneWriter create new configured kafka writer

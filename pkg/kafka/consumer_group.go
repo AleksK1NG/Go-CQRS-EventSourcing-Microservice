@@ -59,7 +59,7 @@ func (c *consumerGroup) GetNewKafkaReader(kafkaURL []string, groupTopics []strin
 
 // GetNewKafkaWriter create new kafka producer
 func (c *consumerGroup) GetNewKafkaWriter() *kafka.Writer {
-	w := &kafka.Writer{
+	return &kafka.Writer{
 		Addr:         kafka.TCP(c.Brokers...),
 		Balancer:     &kafka.LeastBytes{},
 		RequiredAcks: writerRequiredAcks,
@@ -68,8 +68,6 @@ func (c *consumerGroup) GetNewKafkaWriter() *kafka.Writer {
 		ReadTimeout:  writerReadTimeout,
 		WriteTimeout: writerWriteTimeout,
 	}
-
-	return w
 }
 
 // ConsumeTopic start consumer group with given worker and pool size
@@ -78,11 +76,11 @@ func (c *consumerGroup) ConsumeTopic(ctx context.Context, groupTopics []string, 
 
 	defer func() {
 		if err := r.Close(); err != nil {
-			c.log.Warnf("consumerGroup.r.Close: {%v}", err)
+			c.log.Warnf("consumerGroup.r.Close: %v", err)
 		}
 	}()
 
-	c.log.Infof("(Starting consumer groupID): GroupID {%s}, topic: {%+v}, poolSize: {%v}", c.GroupID, groupTopics, poolSize)
+	c.log.Infof("(Starting consumer groupID): GroupID %s, topic: %+v, poolSize: %v", c.GroupID, groupTopics, poolSize)
 
 	wg := &sync.WaitGroup{}
 	for i := 0; i <= poolSize; i++ {
@@ -98,11 +96,11 @@ func (c *consumerGroup) ConsumeTopicWithErrGroup(ctx context.Context, groupTopic
 
 	defer func() {
 		if err := r.Close(); err != nil {
-			c.log.Warnf("consumerGroup.r.Close: {%v}", err)
+			c.log.Warnf("consumerGroup.r.Close: %v", err)
 		}
 	}()
 
-	c.log.Infof("(Starting ConsumeTopicWithErrGroup): GroupID {%s}, topics: {%+v}, poolSize: {%v}", c.GroupID, groupTopics, poolSize)
+	c.log.Infof("(Starting ConsumeTopicWithErrGroup) GroupID: %s, topics: %+v, poolSize: %d", c.GroupID, groupTopics, poolSize)
 
 	g, ctx := errgroup.WithContext(ctx)
 	for i := 0; i <= poolSize; i++ {
