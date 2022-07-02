@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-type BankAccountMongoProjection struct {
+type ElasticSearchProjection struct {
 	ID          string    `json:"id" bson:"_id,omitempty"`
 	AggregateID string    `json:"aggregateID" bson:"aggregateID,omitempty"`
 	Email       string    `json:"email" bson:"email,omitempty"`
@@ -18,7 +18,7 @@ type BankAccountMongoProjection struct {
 	CreatedAt   time.Time `json:"createdAt" bson:"createdAt,omitempty"`
 }
 
-func (b *BankAccountMongoProjection) String() string {
+func (b *ElasticSearchProjection) String() string {
 	return fmt.Sprintf("ID: %s, AggregateID: %s, Email: %s, Address: %s, FirstName: %s, LastName: %s, Status: %s, Balance: %s,  UpdatedAt: %s, CreatedAt: %s",
 		b.ID,
 		b.AggregateID,
