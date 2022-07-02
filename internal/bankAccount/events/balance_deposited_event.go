@@ -3,7 +3,7 @@ package events
 import "github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/es"
 
 const (
-	BalanceDepositedEventType es.EventType = "DEPOSIT_BALANCE_EVENT_V1"
+	BalanceDepositedEventType es.EventType = "BALANCE_DEPOSITED_V1"
 )
 
 type BalanceDepositedEventV1 struct {

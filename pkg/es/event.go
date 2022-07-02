@@ -36,22 +36,17 @@ func NewBaseEvent(aggregate Aggregate, eventType EventType) Event {
 	}
 }
 
-func NewEvent(aggregate Aggregate, eventType EventType, data any) (Event, error) {
-
-	event := Event{
+func NewEvent(aggregate Aggregate, eventType EventType, data []byte, metadata []byte) Event {
+	return Event{
 		EventID:       uuid.NewV4().String(),
-		AggregateType: aggregate.GetType(),
 		AggregateID:   aggregate.GetID(),
-		Version:       aggregate.GetVersion(),
 		EventType:     eventType,
+		AggregateType: aggregate.GetType(),
+		Version:       aggregate.GetVersion(),
+		Data:          data,
+		Metadata:      metadata,
 		Timestamp:     time.Now().UTC(),
 	}
-
-	if err := event.SetJsonData(data); err != nil {
-		return Event{}, err
-	}
-
-	return Event{}, nil
 }
 
 // GetEventID get EventID of the Event.

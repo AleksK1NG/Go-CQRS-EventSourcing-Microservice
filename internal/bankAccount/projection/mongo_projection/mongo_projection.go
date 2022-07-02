@@ -49,6 +49,9 @@ func (b *bankAccountMongoProjection) When(ctx context.Context, esEvent es.Event)
 	case *events.BalanceDepositedEventV1:
 		return b.onBalanceDeposited(ctx, esEvent.GetAggregateID(), event)
 
+	case *events.BalanceWithdrawnEventV1:
+		return b.onBalanceWithdrawn(ctx, esEvent.GetAggregateID(), event)
+
 	case *events.EmailChangedEventV1:
 		return b.onEmailChanged(ctx, esEvent.GetAggregateID(), event)
 
@@ -104,6 +107,27 @@ func (b *bankAccountMongoProjection) onBalanceDeposited(ctx context.Context, agg
 	}
 
 	b.log.Infof("[onBalanceDeposited] projection: %#v", projection)
+	return nil
+}
+
+func (b *bankAccountMongoProjection) onBalanceWithdrawn(ctx context.Context, aggregateID string, event *events.BalanceWithdrawnEventV1) error {
+	span, ctx := opentracing.StartSpanFromContext(ctx, "bankAccountMongoProjection.onBalanceWithdrawn")
+	defer span.Finish()
+	span.LogFields(log.String("aggregateID", aggregateID))
+
+	projection, err := b.mr.GetByAggregateID(ctx, aggregateID)
+	if err != nil {
+		return tracing.TraceWithErr(span, errors.Wrapf(err, "[onBalanceWithdrawn] mr.GetByAggregateID aggregateID: %s", aggregateID))
+	}
+
+	projection.Balance.Amount -= money.New(event.Amount, money.USD).AsMajorUnits()
+
+	err = b.mr.Update(ctx, projection)
+	if err != nil {
+		return tracing.TraceWithErr(span, errors.Wrapf(err, "[onBalanceWithdrawn] mr.Update aggregateID: %s", aggregateID))
+	}
+
+	b.log.Infof("[onBalanceWithdrawn] projection: %#v", projection)
 	return nil
 }
 

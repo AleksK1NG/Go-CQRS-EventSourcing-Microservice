@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	BankAccountCreatedEventType es.EventType = "BANK_ACCOUNT_CREATED_EVENT_V1"
+	BankAccountCreatedEventType es.EventType = "BANK_ACCOUNT_CREATED_V1"
 )
 
 type BankAccountCreatedEventV1 struct {

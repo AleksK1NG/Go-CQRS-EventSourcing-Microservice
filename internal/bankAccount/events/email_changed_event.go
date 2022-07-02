@@ -3,7 +3,7 @@ package events
 import "github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/es"
 
 const (
-	EmailChangedEventType es.EventType = "EMAIL_CHANGED_EVENT_V1"
+	EmailChangedEventType es.EventType = "EMAIL_CHANGED_V1"
 )
 
 type EmailChangedEventV1 struct {

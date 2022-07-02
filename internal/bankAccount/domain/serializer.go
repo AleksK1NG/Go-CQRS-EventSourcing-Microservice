@@ -5,8 +5,6 @@ import (
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/es"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/es/serializer"
 	"github.com/pkg/errors"
-	uuid "github.com/satori/go.uuid"
-	"time"
 )
 
 var (
@@ -29,40 +27,16 @@ func (s *eventSerializer) SerializeEvent(aggregate es.Aggregate, event any) (es.
 	switch evt := event.(type) {
 
 	case *events.BankAccountCreatedEventV1:
-		return es.Event{
-			EventID:       uuid.NewV4().String(),
-			AggregateID:   aggregate.GetID(),
-			EventType:     events.BankAccountCreatedEventType,
-			AggregateType: aggregate.GetType(),
-			Version:       aggregate.GetVersion(),
-			Data:          eventBytes,
-			Metadata:      evt.Metadata,
-			Timestamp:     time.Now().UTC(),
-		}, nil
+		return es.NewEvent(aggregate, events.BankAccountCreatedEventType, eventBytes, evt.Metadata), nil
 
 	case *events.BalanceDepositedEventV1:
-		return es.Event{
-			EventID:       uuid.NewV4().String(),
-			AggregateID:   aggregate.GetID(),
-			EventType:     events.BalanceDepositedEventType,
-			AggregateType: aggregate.GetType(),
-			Version:       aggregate.GetVersion(),
-			Data:          eventBytes,
-			Metadata:      evt.Metadata,
-			Timestamp:     time.Now().UTC(),
-		}, nil
+		return es.NewEvent(aggregate, events.BalanceDepositedEventType, eventBytes, evt.Metadata), nil
+
+	case *events.BalanceWithdrawnEventV1:
+		return es.NewEvent(aggregate, events.BalanceWithdrawnEventType, eventBytes, evt.Metadata), nil
 
 	case *events.EmailChangedEventV1:
-		return es.Event{
-			EventID:       uuid.NewV4().String(),
-			AggregateID:   aggregate.GetID(),
-			EventType:     events.EmailChangedEventType,
-			AggregateType: aggregate.GetType(),
-			Version:       aggregate.GetVersion(),
-			Data:          eventBytes,
-			Metadata:      evt.Metadata,
-			Timestamp:     time.Now().UTC(),
-		}, nil
+		return es.NewEvent(aggregate, events.EmailChangedEventType, eventBytes, evt.Metadata), nil
 
 	default:
 		return es.Event{}, errors.Wrapf(ErrInvalidEvent, "aggregateID: %s, type: %T", aggregate.GetID(), event)
@@ -74,27 +48,25 @@ func (s *eventSerializer) DeserializeEvent(event es.Event) (any, error) {
 	switch event.GetEventType() {
 
 	case events.BankAccountCreatedEventType:
-		var evt events.BankAccountCreatedEventV1
-		if err := event.GetJsonData(&evt); err != nil {
-			return nil, errors.Wrapf(err, "event.GetJsonData type: %s", event.GetEventType())
-		}
-		return &evt, nil
+		return deserializeEvent(event, new(events.BankAccountCreatedEventV1))
 
 	case events.BalanceDepositedEventType:
-		var evt events.BalanceDepositedEventV1
-		if err := event.GetJsonData(&evt); err != nil {
-			return nil, errors.Wrapf(err, "event.GetJsonData type: %s", event.GetEventType())
-		}
-		return &evt, nil
+		return deserializeEvent(event, new(events.BalanceDepositedEventV1))
+
+	case events.BalanceWithdrawnEventType:
+		return deserializeEvent(event, new(events.BalanceWithdrawnEventV1))
 
 	case events.EmailChangedEventType:
-		var evt events.EmailChangedEventV1
-		if err := event.GetJsonData(&evt); err != nil {
-			return nil, errors.Wrapf(err, "event.GetJsonData type: %s", event.GetEventType())
-		}
-		return &evt, nil
+		return deserializeEvent(event, new(events.EmailChangedEventV1))
 
 	default:
 		return nil, errors.Wrapf(ErrInvalidEvent, "type: %s", event.GetEventType())
 	}
+}
+
+func deserializeEvent(event es.Event, targetEvent any) (any, error) {
+	if err := event.GetJsonData(&targetEvent); err != nil {
+		return nil, errors.Wrapf(err, "event.GetJsonData type: %s", event.GetEventType())
+	}
+	return targetEvent, nil
 }

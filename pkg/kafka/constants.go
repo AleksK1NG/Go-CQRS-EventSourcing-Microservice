@@ -9,18 +9,18 @@ const (
 	heartbeatInterval      = 1 * time.Second
 	commitInterval         = 0
 	partitionWatchInterval = 500 * time.Millisecond
-	maxAttempts            = 3
+	maxAttempts            = 10
 	dialTimeout            = 3 * time.Minute
-	maxWait                = 3 * time.Second
+	maxWait                = 1 * time.Second
 
 	writerReadTimeout  = 1 * time.Second
 	writerWriteTimeout = 1 * time.Second
-	batchTimeout       = 100 * time.Millisecond
+	batchTimeout       = 60 * time.Millisecond
 	batchSize          = 100
 
 	writerRequireNoneReadTimeout  = 5 * time.Second
 	writerRequireNoneWriteTimeout = 5 * time.Second
 
 	writerRequiredAcks = 1
-	writerMaxAttempts  = 5
+	writerMaxAttempts  = 10
 )
