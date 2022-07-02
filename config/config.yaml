@@ -18,7 +18,7 @@ probes:
   prometheusPort: :8001
   checkIntervalSeconds: 10
 logger:
-  level: debug
+  level: info
   devMode: false
   encoder: console
 postgres:

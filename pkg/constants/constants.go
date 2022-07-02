@@ -73,7 +73,7 @@ const (
 
 	MessageSize = "MessageSize"
 
-	BankAccountIndex = "BankAccountId"
+	BankAccountIndex = "aggregateID"
 	BankAccountId    = "BankAccountId"
 
 	KafkaHeaders = "kafkaHeaders"

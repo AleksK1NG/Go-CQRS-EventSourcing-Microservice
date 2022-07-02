@@ -21,7 +21,7 @@ func GetByID[T any, V GetResponse[T]](ctx context.Context, transport esapi.Trans
 	defer response.Body.Close()
 
 	if response.IsError() {
-		return nil, errors.Wrapf(errors.New("ElasticSearch request err"), "response.IsError id: %s", documentID)
+		return nil, errors.Wrapf(errors.New("ElasticSearch GetByID err"), "documentID: %s, status: %s", documentID, response.Status())
 	}
 
 	var getResponse V
