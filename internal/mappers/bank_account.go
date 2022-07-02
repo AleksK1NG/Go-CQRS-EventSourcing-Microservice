@@ -21,6 +21,21 @@ func BankAccountToMongoProjection(bankAccount *domain.BankAccount) *domain.BankA
 	}
 }
 
+func BankAccountToElasticProjection(bankAccount *domain.BankAccount) *domain.ElasticSearchProjection {
+	return &domain.ElasticSearchProjection{
+		AggregateID: bankAccount.AggregateID,
+		Email:       bankAccount.Email,
+		Address:     bankAccount.Address,
+		FirstName:   bankAccount.FirstName,
+		LastName:    bankAccount.LastName,
+		Balance: domain.Balance{
+			Amount:   bankAccount.Balance.AsMajorUnits(),
+			Currency: bankAccount.Balance.Currency().Code,
+		},
+		Status: bankAccount.Status,
+	}
+}
+
 func BankAccountToProto(bankAccount *domain.BankAccount) *bankAccountService.BankAccount {
 	return &bankAccountService.BankAccount{
 		Id:        bankAccount.AggregateID,

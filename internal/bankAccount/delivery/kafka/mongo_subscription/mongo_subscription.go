@@ -1,4 +1,4 @@
-package kafka
+package mongo_subscription
 
 import (
 	"context"

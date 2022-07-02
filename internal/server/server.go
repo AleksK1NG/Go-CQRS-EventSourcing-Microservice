@@ -3,7 +3,7 @@ package server
 import (
 	"context"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/config"
-	bankAccountMongoSubscription "github.com/AleksK1NG/go-cqrs-eventsourcing/internal/bankAccount/delivery/kafka"
+	bankAccountMongoSubscription "github.com/AleksK1NG/go-cqrs-eventsourcing/internal/bankAccount/delivery/kafka/mongo_subscription"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/internal/bankAccount/domain"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/internal/bankAccount/projection/mongo_projection"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/internal/bankAccount/repository/mongo_repository"
