@@ -108,6 +108,7 @@ func (b *bankAccountMongoProjection) onBalanceDeposited(ctx context.Context, esE
 	}
 
 	projection.Balance.Amount += money.New(event.Amount, money.USD).AsMajorUnits()
+	projection.Version = esEvent.GetVersion()
 
 	err = b.mongoRepository.Update(ctx, projection)
 	if err != nil {
@@ -132,6 +133,7 @@ func (b *bankAccountMongoProjection) onBalanceWithdrawn(ctx context.Context, esE
 	}
 
 	projection.Balance.Amount -= money.New(event.Amount, money.USD).AsMajorUnits()
+	projection.Version = esEvent.GetVersion()
 
 	err = b.mongoRepository.Update(ctx, projection)
 	if err != nil {
@@ -157,6 +159,7 @@ func (b *bankAccountMongoProjection) onEmailChanged(ctx context.Context, esEvent
 	}
 
 	projection.Email = event.Email
+	projection.Version = esEvent.GetVersion()
 
 	err = b.mongoRepository.Update(ctx, projection)
 	if err != nil {

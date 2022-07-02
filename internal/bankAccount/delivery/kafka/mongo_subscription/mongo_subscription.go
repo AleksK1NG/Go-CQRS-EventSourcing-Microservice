@@ -120,7 +120,7 @@ func (s *bankAccountMongoSubscription) recreateProjection(ctx context.Context, e
 		return tracing.TraceWithErr(span, errors.Wrapf(err, "When as.Load type: %s, aggregateID: %s", event.GetEventType(), event.GetAggregateID()))
 	}
 
-	err = s.mr.Insert(ctx, mappers.BankAccountToMongoProjection(bankAccountAggregate.BankAccount))
+	err = s.mr.Insert(ctx, mappers.BankAccountToMongoProjection(bankAccountAggregate))
 	if err != nil {
 		s.log.Errorf("MongoSubscription mr.Insert err: %v", err)
 		return tracing.TraceWithErr(span, errors.Wrapf(err, "When mr.Insert type: %s, aggregateID: %s", event.GetEventType(), event.GetAggregateID()))
