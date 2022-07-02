@@ -37,7 +37,7 @@ type Config struct {
 	MongoCollections     MongoCollections        `mapstructure:"mongoCollections" validate:"required"`
 	KafkaPublisherConfig es.KafkaEventsBusConfig `mapstructure:"kafkaPublisherConfig" validate:"required"`
 	Jaeger               *tracing.Config         `mapstructure:"jaeger"`
-	ElasticIndexes       ElasticIndexes          `mapstructure:"elasticIndexes"`
+	ElasticIndexes       ElasticIndexes          `mapstructure:"elasticIndexes" validate:"required"`
 	Projections          Projections             `mapstructure:"projections"`
 	Http                 Http                    `mapstructure:"http"`
 	Probes               probes.Config           `mapstructure:"probes"`
@@ -68,9 +68,10 @@ type ElasticIndexes struct {
 }
 
 type Projections struct {
-	MongoGroup                string `mapstructure:"mongoGroup" validate:"required"`
-	MongoSubscriptionPoolSize int    `mapstructure:"mongoSubscriptionPoolSize" validate:"required,gte=0"`
-	ElasticGroup              string `mapstructure:"elasticGroup" validate:"required"`
+	MongoGroup                  string `mapstructure:"mongoGroup" validate:"required"`
+	MongoSubscriptionPoolSize   int    `mapstructure:"mongoSubscriptionPoolSize" validate:"required,gte=0"`
+	ElasticGroup                string `mapstructure:"elasticGroup" validate:"required"`
+	ElasticSubscriptionPoolSize int    `mapstructure:"elasticSubscriptionPoolSize" validate:"required,gte=0"`
 }
 
 type Http struct {

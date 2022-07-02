@@ -24,6 +24,7 @@ func BankAccountToMongoProjection(bankAccount *domain.BankAccountAggregate) *dom
 
 func BankAccountToElasticProjection(bankAccount *domain.BankAccountAggregate) *domain.ElasticSearchProjection {
 	return &domain.ElasticSearchProjection{
+		ID:          bankAccount.BankAccount.AggregateID,
 		AggregateID: bankAccount.BankAccount.AggregateID,
 		Version:     bankAccount.Version,
 		Email:       bankAccount.BankAccount.Email,

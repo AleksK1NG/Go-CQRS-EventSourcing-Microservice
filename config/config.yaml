@@ -68,9 +68,11 @@ projections:
   mongoGroup: 'mongoGroup'
   elasticGroup: 'elasticGroup'
   mongoSubscriptionPoolSize: 10
-
+  elasticSubscriptionPoolSize: 10
 elasticSearch:
   addresses: ["http://localhost:9200"]
   username: ""
   password: ""
   apiKey: ""
+elasticIndexes:
+  bankAccounts: accounts
