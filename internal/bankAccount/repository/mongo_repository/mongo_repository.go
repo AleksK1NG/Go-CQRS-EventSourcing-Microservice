@@ -5,6 +5,7 @@ import (
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/config"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/internal/bankAccount/domain"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/constants"
+	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/es"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/logger"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/tracing"
 	"github.com/opentracing/opentracing-go"
@@ -59,6 +60,61 @@ func (b *bankAccountMongoRepository) Update(ctx context.Context, projection *dom
 	}
 
 	b.log.Debugf("[Update] result AggregateID: %s", projection.AggregateID)
+	return nil
+}
+
+func (b *bankAccountMongoRepository) UpdateConcurrently(ctx context.Context, aggregateID string, updateCb domain.UpdateProjectionCallback, expectedVersion uint64) error {
+	span, ctx := opentracing.StartSpanFromContext(ctx, "bankAccountMongoRepository.Update")
+	defer span.Finish()
+	span.LogFields(log.String("aggregateID", aggregateID))
+
+	session, err := b.db.StartSession()
+	if err != nil {
+		return errors.Wrapf(err, "StartSession aggregateID: %s, expectedVersion: %d", aggregateID, expectedVersion)
+	}
+	defer session.EndSession(ctx)
+
+	err = mongo.WithSession(ctx, session, func(sessionContext mongo.SessionContext) error {
+		if err := session.StartTransaction(); err != nil {
+			return err
+		}
+
+		filter := bson.M{constants.MongoAggregateID: aggregateID}
+		foundProjection := &domain.BankAccountMongoProjection{}
+		err := b.bankAccountsCollection().FindOne(ctx, filter).Decode(foundProjection)
+		if err != nil {
+			return tracing.TraceWithErr(span, errors.Wrapf(err, "[FindOne] aggregateID: %s, expectedVersion: %d", aggregateID, expectedVersion))
+		}
+
+		if foundProjection.Version != expectedVersion {
+			return tracing.TraceWithErr(span, errors.Wrapf(es.ErrInvalidEventVersion, "[FindOne] aggregateID: %s, expectedVersion: %d", aggregateID, expectedVersion))
+		}
+
+		foundProjection = updateCb(foundProjection)
+
+		foundProjection.ID = ""
+		foundProjection.UpdatedAt = time.Now().UTC()
+
+		ops := options.FindOneAndUpdate()
+		ops.SetReturnDocument(options.After)
+		ops.SetUpsert(false)
+		filter = bson.M{constants.MongoAggregateID: foundProjection.AggregateID}
+
+		err = b.bankAccountsCollection().FindOneAndUpdate(ctx, filter, bson.M{"$set": foundProjection}, ops).Decode(foundProjection)
+		if err != nil {
+			return tracing.TraceWithErr(span, errors.Wrapf(err, "[FindOneAndUpdate] aggregateID: %s, expectedVersion: %d", foundProjection.AggregateID, expectedVersion))
+		}
+
+		b.log.Infof("[UpdateConcurrently] result AggregateID: %s, expectedVersion: %d", foundProjection.AggregateID, expectedVersion)
+		return nil
+	})
+	if err != nil {
+		if err := session.AbortTransaction(ctx); err != nil {
+			return err
+		}
+		return errors.Wrapf(err, "AbortTransaction aggregateID: %s, expectedVersion: %d", aggregateID, expectedVersion)
+	}
+
 	return nil
 }
 
