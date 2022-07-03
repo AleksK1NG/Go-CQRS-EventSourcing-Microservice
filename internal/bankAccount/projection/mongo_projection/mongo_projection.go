@@ -99,23 +99,15 @@ func (b *bankAccountMongoProjection) onBalanceDeposited(ctx context.Context, esE
 	defer span.Finish()
 	span.LogFields(log.String("aggregateID", esEvent.GetAggregateID()))
 
-	projection, err := b.mongoRepository.GetByAggregateID(ctx, esEvent.GetAggregateID())
-	if err != nil {
-		return tracing.TraceWithErr(span, errors.Wrapf(err, "[onBalanceDeposited] mongoRepository.GetByAggregateID aggregateID: %s", esEvent.GetAggregateID()))
-	}
-	if err := b.validateEventVersion(projection.Version, esEvent); err != nil {
-		return tracing.TraceWithErr(span, err)
-	}
-
-	projection.Balance.Amount += money.New(event.Amount, money.USD).AsMajorUnits()
-	projection.Version = esEvent.GetVersion()
-
-	err = b.mongoRepository.Update(ctx, projection)
-	if err != nil {
-		return tracing.TraceWithErr(span, errors.Wrapf(err, "[onBalanceDeposited] mongoRepository.Update aggregateID: %s", esEvent.GetAggregateID()))
+	if err := b.mongoRepository.UpdateConcurrently(ctx, esEvent.GetAggregateID(), func(projection *domain.BankAccountMongoProjection) *domain.BankAccountMongoProjection {
+		projection.Balance.Amount += money.New(event.Amount, money.USD).AsMajorUnits()
+		projection.Version = esEvent.GetVersion()
+		return projection
+	}, esEvent.GetVersion()-1); err != nil {
+		return tracing.TraceWithErr(span, errors.Wrapf(err, "[onBalanceDeposited] mongoRepository.UpdateConcurrently aggregateID: %s", esEvent.GetAggregateID()))
 	}
 
-	b.log.Infof("[onBalanceDeposited] projection: %#v", projection)
+	b.log.Infof("[onBalanceDeposited] aggregateID: %s, eventType: %s, version: %d", esEvent.GetAggregateID(), esEvent.GetEventType(), esEvent.GetVersion())
 	return nil
 }
 
@@ -124,23 +116,16 @@ func (b *bankAccountMongoProjection) onBalanceWithdrawn(ctx context.Context, esE
 	defer span.Finish()
 	span.LogFields(log.String("aggregateID", esEvent.GetAggregateID()))
 
-	projection, err := b.mongoRepository.GetByAggregateID(ctx, esEvent.GetAggregateID())
-	if err != nil {
-		return tracing.TraceWithErr(span, errors.Wrapf(err, "[onBalanceWithdrawn] mongoRepository.GetByAggregateID aggregateID: %s", esEvent.GetAggregateID()))
-	}
-	if err := b.validateEventVersion(projection.Version, esEvent); err != nil {
-		return tracing.TraceWithErr(span, err)
-	}
+	if err := b.mongoRepository.UpdateConcurrently(ctx, esEvent.GetAggregateID(), func(projection *domain.BankAccountMongoProjection) *domain.BankAccountMongoProjection {
+		projection.Balance.Amount -= money.New(event.Amount, money.USD).AsMajorUnits()
+		projection.Version = esEvent.GetVersion()
 
-	projection.Balance.Amount -= money.New(event.Amount, money.USD).AsMajorUnits()
-	projection.Version = esEvent.GetVersion()
-
-	err = b.mongoRepository.Update(ctx, projection)
-	if err != nil {
-		return tracing.TraceWithErr(span, errors.Wrapf(err, "[onBalanceWithdrawn] mongoRepository.Update aggregateID: %s", esEvent.GetAggregateID()))
+		return projection
+	}, esEvent.GetVersion()-1); err != nil {
+		return tracing.TraceWithErr(span, errors.Wrapf(err, "[onBalanceWithdrawn] mongoRepository.UpdateConcurrently aggregateID: %s", esEvent.GetAggregateID()))
 	}
 
-	b.log.Infof("[onBalanceWithdrawn] projection: %#v", projection)
+	b.log.Infof("[onBalanceWithdrawn] aggregateID: %s, eventType: %s, version: %d", esEvent.GetAggregateID(), esEvent.GetEventType(), esEvent.GetVersion())
 	return nil
 }
 
@@ -149,24 +134,15 @@ func (b *bankAccountMongoProjection) onEmailChanged(ctx context.Context, esEvent
 	defer span.Finish()
 	span.LogFields(log.String("aggregateID", esEvent.GetAggregateID()))
 
-	projection, err := b.mongoRepository.GetByAggregateID(ctx, esEvent.GetAggregateID())
-	if err != nil {
-		return tracing.TraceWithErr(span, errors.Wrapf(err, "[onEmailChanged] mongoRepository.GetByAggregateID aggregateID: %s", esEvent.GetAggregateID()))
+	if err := b.mongoRepository.UpdateConcurrently(ctx, esEvent.GetAggregateID(), func(projection *domain.BankAccountMongoProjection) *domain.BankAccountMongoProjection {
+		projection.Email = event.Email
+		projection.Version = esEvent.GetVersion()
+		return projection
+	}, esEvent.GetVersion()-1); err != nil {
+		return tracing.TraceWithErr(span, errors.Wrapf(err, "[onEmailChanged] mongoRepository.UpdateConcurrently aggregateID: %s", esEvent.GetAggregateID()))
 	}
 
-	if err := b.validateEventVersion(projection.Version, esEvent); err != nil {
-		return tracing.TraceWithErr(span, err)
-	}
-
-	projection.Email = event.Email
-	projection.Version = esEvent.GetVersion()
-
-	err = b.mongoRepository.Update(ctx, projection)
-	if err != nil {
-		return tracing.TraceWithErr(span, errors.Wrapf(err, "[onEmailChanged] mongoRepository.Update aggregateID: %s", esEvent.GetAggregateID()))
-	}
-
-	b.log.Infof("[onEmailChanged] projection: %#v", projection)
+	b.log.Infof("[onEmailChanged] aggregateID: %s, eventType: %s, version: %d", esEvent.GetAggregateID(), esEvent.GetEventType(), esEvent.GetVersion())
 	return nil
 }
 
