@@ -59,7 +59,7 @@ func (s *mongoSubscription) ProcessMessagesErrGroup(ctx context.Context, r *kafk
 
 		m, err := r.FetchMessage(ctx)
 		if err != nil {
-			s.log.Warnf("(mongoSubscription) workerID: %v, err: %v", workerID, err)
+			s.log.Warnf("(mongoSubscription) workerID: %d, err: %v", workerID, err)
 			continue
 		}
 
@@ -85,7 +85,6 @@ func (s *mongoSubscription) handleBankAccountEvents(ctx context.Context, r *kafk
 
 	for _, event := range events {
 		if err := s.handle(ctx, r, m, event); err != nil {
-			s.log.Errorf("handleBankAccountEvents handle err: %v", err)
 			return
 		}
 	}
@@ -100,17 +99,8 @@ func (s *mongoSubscription) handle(ctx context.Context, r *kafka.Reader, m kafka
 	if err != nil {
 		s.log.Errorf("MongoSubscription When err: %v", err)
 
-		s.log.Warnf("Mongo recreating projection >>>>> aggregateID: %s, version: %d, type: %s", event.GetAggregateID(), event.GetVersion(), event.GetEventType())
 		recreateErr := s.recreateProjection(ctx, event)
 		if recreateErr != nil {
-			s.log.Errorf("Mongo recreate projection >>>>> error err: %v", recreateErr)
-
-			//err := s.eventBus.ProcessEvents(ctx, []es.Event{event})
-			//if err != nil {
-			//	return tracing.TraceWithErr(span, errors.Wrapf(err, "[eventBus] republish event err: %v", err))
-			//}
-
-			s.log.Warnf("Mongo RECREATE PROJECTION REPUBLISHED EVENT >>>>>>>> aggregateID: %s, version: %d, type: %s", event.GetAggregateID(), event.GetVersion(), event.GetEventType())
 			return tracing.TraceWithErr(span, errors.Wrapf(recreateErr, "recreateProjection err: %v", err))
 		}
 
@@ -118,13 +108,14 @@ func (s *mongoSubscription) handle(ctx context.Context, r *kafka.Reader, m kafka
 		return tracing.TraceWithErr(span, errors.Wrapf(err, "When type: %s, aggregateID: %s", event.GetEventType(), event.GetAggregateID()))
 	}
 
-	s.log.Infof("Mongo projection handle event: %s", event.String())
+	s.log.Infof("MongoSubscription <<<commit>>> event: %s", event.String())
 	return nil
 }
 
 func (s *mongoSubscription) recreateProjection(ctx context.Context, event es.Event) error {
 	span, ctx := opentracing.StartSpanFromContext(ctx, "mongoSubscription.recreateProjection")
 	defer span.Finish()
+	s.log.Warnf("MongoSubscription recreating projection >>>>> aggregateID: %s, version: %d, type: %s", event.GetAggregateID(), event.GetVersion(), event.GetEventType())
 
 	err := s.mongoRepository.DeleteByAggregateID(ctx, event.GetAggregateID())
 	if err != nil {
@@ -145,6 +136,6 @@ func (s *mongoSubscription) recreateProjection(ctx context.Context, event es.Eve
 		return tracing.TraceWithErr(span, errors.Wrapf(err, "When mongoRepository.Insert type: %s, aggregateID: %s", event.GetEventType(), event.GetAggregateID()))
 	}
 
-	s.log.Warnf("[Mongo Subscription] ***projection recreated commit*** aggregateID: %s, version: %d", event.GetAggregateID(), bankAccountAggregate.GetVersion())
+	s.log.Infof("[Mongo Subscription] <<<projection recreated commit>>> aggregateID: %s, version: %d", event.GetAggregateID(), bankAccountAggregate.GetVersion())
 	return nil
 }

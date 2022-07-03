@@ -70,13 +70,13 @@ func (b *bankAccountMongoRepository) UpdateConcurrently(ctx context.Context, agg
 
 	session, err := b.db.StartSession()
 	if err != nil {
-		return errors.Wrapf(err, "StartSession aggregateID: %s, expectedVersion: %d", aggregateID, expectedVersion)
+		return tracing.TraceWithErr(span, errors.Wrapf(err, "StartSession aggregateID: %s, expectedVersion: %d", aggregateID, expectedVersion))
 	}
 	defer session.EndSession(ctx)
 
 	err = mongo.WithSession(ctx, session, func(sessionContext mongo.SessionContext) error {
 		if err := session.StartTransaction(); err != nil {
-			return err
+			return tracing.TraceWithErr(span, errors.Wrapf(err, "StartTransaction aggregateID: %s, expectedVersion: %d", aggregateID, expectedVersion))
 		}
 
 		filter := bson.M{constants.MongoAggregateID: aggregateID}
@@ -110,9 +110,9 @@ func (b *bankAccountMongoRepository) UpdateConcurrently(ctx context.Context, agg
 	})
 	if err != nil {
 		if err := session.AbortTransaction(ctx); err != nil {
-			return err
+			return tracing.TraceWithErr(span, errors.Wrapf(err, "AbortTransaction aggregateID: %s, expectedVersion: %d", aggregateID, expectedVersion))
 		}
-		return errors.Wrapf(err, "AbortTransaction aggregateID: %s, expectedVersion: %d", aggregateID, expectedVersion)
+		return tracing.TraceWithErr(span, errors.Wrapf(err, "mongo.WithSession aggregateID: %s, expectedVersion: %d", aggregateID, expectedVersion))
 	}
 
 	return nil

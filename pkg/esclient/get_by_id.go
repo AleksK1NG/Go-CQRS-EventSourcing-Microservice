@@ -2,7 +2,7 @@ package esclient
 
 import (
 	"context"
-	"encoding/json"
+	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/es/serializer"
 	"github.com/elastic/go-elasticsearch/v8/esapi"
 	"github.com/pkg/errors"
 )
@@ -25,7 +25,7 @@ func GetByID[T any, V GetResponse[T]](ctx context.Context, transport esapi.Trans
 	}
 
 	var getResponse V
-	if err := json.NewDecoder(response.Body).Decode(&getResponse); err != nil {
+	if err := serializer.NewDecoder(response.Body).Decode(&getResponse); err != nil {
 		return new(V), err
 	}
 
