@@ -57,12 +57,16 @@ func SearchMultiMatchPrefix[T any](ctx context.Context, transport esapi.Transpor
 	}
 
 	searchRequest := esapi.SearchRequest{
-		Index:  request.Index,
-		Body:   bytes.NewReader(queryBytes),
-		Size:   IntPointer(request.Size),
-		From:   IntPointer(request.From),
-		Sort:   request.Sort,
+		Index: request.Index,
+		Body:  bytes.NewReader(queryBytes),
+		Size:  IntPointer(request.Size),
+		From:  IntPointer(request.From),
+		//Sort:   request.Sort,
 		Pretty: true,
+	}
+
+	if request.Sort != nil {
+		searchRequest.Sort = request.Sort
 	}
 
 	response, err := searchRequest.Do(ctx, transport)

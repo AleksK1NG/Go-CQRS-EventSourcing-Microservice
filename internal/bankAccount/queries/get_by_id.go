@@ -23,13 +23,13 @@ type GetBankAccountByID interface {
 }
 
 type getBankAccountByIDQuery struct {
-	log logger.Logger
-	es  es.AggregateStore
-	mr  domain.MongoRepository
+	log             logger.Logger
+	aggregateStore  es.AggregateStore
+	mongoRepository domain.MongoRepository
 }
 
-func NewGetBankAccountByIDQuery(log logger.Logger, es es.AggregateStore, mr domain.MongoRepository) *getBankAccountByIDQuery {
-	return &getBankAccountByIDQuery{log: log, es: es, mr: mr}
+func NewGetBankAccountByIDQuery(log logger.Logger, aggregateStore es.AggregateStore, mongoRepository domain.MongoRepository) *getBankAccountByIDQuery {
+	return &getBankAccountByIDQuery{log: log, aggregateStore: aggregateStore, mongoRepository: mongoRepository}
 }
 
 func (q *getBankAccountByIDQuery) Handle(ctx context.Context, query GetBankAccountByIDQuery) (*domain.BankAccountMongoProjection, error) {
@@ -39,23 +39,23 @@ func (q *getBankAccountByIDQuery) Handle(ctx context.Context, query GetBankAccou
 
 	if query.FromEventStore {
 		bankAccountAggregate := domain.NewBankAccountAggregate(query.AggregateID)
-		if err := q.es.Load(ctx, bankAccountAggregate); err != nil {
+		if err := q.aggregateStore.Load(ctx, bankAccountAggregate); err != nil {
 			return nil, tracing.TraceWithErr(span, err)
 		}
-		q.log.Debugf("GetBankAccountByIDQuery from es bankAccountAggregate: %#+v", bankAccountAggregate.BankAccount)
+		q.log.Debugf("GetBankAccountByIDQuery from aggregateStore bankAccountAggregate: %#+v", bankAccountAggregate.BankAccount)
 		return mappers.BankAccountToMongoProjection(bankAccountAggregate), nil
 	}
 
-	projection, err := q.mr.GetByAggregateID(ctx, query.AggregateID)
+	projection, err := q.mongoRepository.GetByAggregateID(ctx, query.AggregateID)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			bankAccountAggregate := domain.NewBankAccountAggregate(query.AggregateID)
-			if err = q.es.Load(ctx, bankAccountAggregate); err != nil {
+			if err = q.aggregateStore.Load(ctx, bankAccountAggregate); err != nil {
 				return nil, tracing.TraceWithErr(span, err)
 			}
 
 			mongoProjection := mappers.BankAccountToMongoProjection(bankAccountAggregate)
-			err = q.mr.Upsert(ctx, mongoProjection)
+			err = q.mongoRepository.Upsert(ctx, mongoProjection)
 			if err != nil {
 				q.log.Errorf("GetBankAccountByIDQuery mongo Upsert AggregateID: %s, err: %v", query.AggregateID, tracing.TraceWithErr(span, err))
 			}

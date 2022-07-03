@@ -6,6 +6,14 @@ option go_package = "./;bankAccountService";
 
 import "google/protobuf/timestamp.proto";
 
+message Pagination {
+  int64 TotalCount = 1;
+  int64 TotalPages = 2;
+  int64 Page = 3;
+  int64 Size = 4;
+  bool HasMore = 5;
+}
+
 message Payment {
   string id = 1;
   google.protobuf.Timestamp timestamp = 2;
@@ -72,15 +80,17 @@ message ChangeEmailRequest {
 
 message ChangeEmailResponse {}
 
-message GetBankAccountByStatusRequest {
-  string status = 1;
+message SearchBankAccountsRequest {
+  string searchText = 1;
   int64 page = 2;
   int64 size = 3;
 }
 
-message GetBankAccountByStatusResponse {
+message SearchBankAccountsResponse {
   repeated BankAccount bankAccounts = 1;
+  Pagination pagination = 2;
 }
+
 
 service bankAccountService {
 
@@ -92,5 +102,5 @@ service bankAccountService {
 
   // queries
   rpc GetById (GetByIdRequest) returns (GetByIdResponse) {};
-  rpc GetBankAccountByStatus (GetBankAccountByStatusRequest) returns (GetBankAccountByStatusResponse) {};
+  rpc SearchBankAccounts (SearchBankAccountsRequest) returns (SearchBankAccountsResponse) {};
 }
