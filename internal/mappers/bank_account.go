@@ -64,3 +64,25 @@ func BankAccountMongoProjectionToProto(bankAccount *domain.BankAccountMongoProje
 		CreatedAt: timestamppb.New(bankAccount.CreatedAt.UTC()),
 	}
 }
+
+func BankAccountElasticProjectionToProto(bankAccount *domain.ElasticSearchProjection) *bankAccountService.BankAccount {
+	return &bankAccountService.BankAccount{
+		Id:        bankAccount.AggregateID,
+		Email:     bankAccount.Email,
+		Address:   bankAccount.Address,
+		FirstName: bankAccount.FirstName,
+		LastName:  bankAccount.LastName,
+		Balance:   BalanceToGrpc(bankAccount.Balance),
+		Status:    bankAccount.Status,
+		UpdatedAt: timestamppb.New(bankAccount.UpdatedAt.UTC()),
+		CreatedAt: timestamppb.New(bankAccount.CreatedAt.UTC()),
+	}
+}
+
+func SearchBankAccountsListToProto(list []*domain.ElasticSearchProjection) []*bankAccountService.BankAccount {
+	result := make([]*bankAccountService.BankAccount, 0, len(list))
+	for _, projection := range list {
+		result = append(result, BankAccountElasticProjectionToProto(projection))
+	}
+	return result
+}

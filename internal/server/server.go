@@ -137,7 +137,7 @@ func (a *app) Run() error {
 	elasticSearchRepository := elasticsearch_repository.NewElasticRepository(a.log, &a.cfg, a.elasticClient)
 	elasticSearchProjection := elasticsearch_projection.NewElasticProjection(a.log, &a.cfg, eventSerializer, elasticSearchRepository)
 
-	a.bs = service.NewBankAccountService(a.log, eventStore, mongoRepository)
+	a.bs = service.NewBankAccountService(a.log, eventStore, mongoRepository, elasticSearchRepository)
 
 	mongoSubscription := bankAccountMongoSubscription.NewBankAccountMongoSubscription(
 		a.log,

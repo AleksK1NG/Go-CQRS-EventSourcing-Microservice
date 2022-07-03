@@ -29,7 +29,7 @@ type BankAccountServiceClient interface {
 	ChangeEmail(ctx context.Context, in *ChangeEmailRequest, opts ...grpc.CallOption) (*ChangeEmailResponse, error)
 	// queries
 	GetById(ctx context.Context, in *GetByIdRequest, opts ...grpc.CallOption) (*GetByIdResponse, error)
-	GetBankAccountByStatus(ctx context.Context, in *GetBankAccountByStatusRequest, opts ...grpc.CallOption) (*GetBankAccountByStatusResponse, error)
+	SearchBankAccounts(ctx context.Context, in *SearchBankAccountsRequest, opts ...grpc.CallOption) (*SearchBankAccountsResponse, error)
 }
 
 type bankAccountServiceClient struct {
@@ -85,9 +85,9 @@ func (c *bankAccountServiceClient) GetById(ctx context.Context, in *GetByIdReque
 	return out, nil
 }
 
-func (c *bankAccountServiceClient) GetBankAccountByStatus(ctx context.Context, in *GetBankAccountByStatusRequest, opts ...grpc.CallOption) (*GetBankAccountByStatusResponse, error) {
-	out := new(GetBankAccountByStatusResponse)
-	err := c.cc.Invoke(ctx, "/orderService.bankAccountService/GetBankAccountByStatus", in, out, opts...)
+func (c *bankAccountServiceClient) SearchBankAccounts(ctx context.Context, in *SearchBankAccountsRequest, opts ...grpc.CallOption) (*SearchBankAccountsResponse, error) {
+	out := new(SearchBankAccountsResponse)
+	err := c.cc.Invoke(ctx, "/orderService.bankAccountService/SearchBankAccounts", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -105,7 +105,7 @@ type BankAccountServiceServer interface {
 	ChangeEmail(context.Context, *ChangeEmailRequest) (*ChangeEmailResponse, error)
 	// queries
 	GetById(context.Context, *GetByIdRequest) (*GetByIdResponse, error)
-	GetBankAccountByStatus(context.Context, *GetBankAccountByStatusRequest) (*GetBankAccountByStatusResponse, error)
+	SearchBankAccounts(context.Context, *SearchBankAccountsRequest) (*SearchBankAccountsResponse, error)
 }
 
 // UnimplementedBankAccountServiceServer should be embedded to have forward compatible implementations.
@@ -127,8 +127,8 @@ func (UnimplementedBankAccountServiceServer) ChangeEmail(context.Context, *Chang
 func (UnimplementedBankAccountServiceServer) GetById(context.Context, *GetByIdRequest) (*GetByIdResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetById not implemented")
 }
-func (UnimplementedBankAccountServiceServer) GetBankAccountByStatus(context.Context, *GetBankAccountByStatusRequest) (*GetBankAccountByStatusResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetBankAccountByStatus not implemented")
+func (UnimplementedBankAccountServiceServer) SearchBankAccounts(context.Context, *SearchBankAccountsRequest) (*SearchBankAccountsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SearchBankAccounts not implemented")
 }
 
 // UnsafeBankAccountServiceServer may be embedded to opt out of forward compatibility for this service.
@@ -232,20 +232,20 @@ func _BankAccountService_GetById_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
-func _BankAccountService_GetBankAccountByStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetBankAccountByStatusRequest)
+func _BankAccountService_SearchBankAccounts_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SearchBankAccountsRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(BankAccountServiceServer).GetBankAccountByStatus(ctx, in)
+		return srv.(BankAccountServiceServer).SearchBankAccounts(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/orderService.bankAccountService/GetBankAccountByStatus",
+		FullMethod: "/orderService.bankAccountService/SearchBankAccounts",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(BankAccountServiceServer).GetBankAccountByStatus(ctx, req.(*GetBankAccountByStatusRequest))
+		return srv.(BankAccountServiceServer).SearchBankAccounts(ctx, req.(*SearchBankAccountsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -278,8 +278,8 @@ var BankAccountService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _BankAccountService_GetById_Handler,
 		},
 		{
-			MethodName: "GetBankAccountByStatus",
-			Handler:    _BankAccountService_GetBankAccountByStatus_Handler,
+			MethodName: "SearchBankAccounts",
+			Handler:    _BankAccountService_SearchBankAccounts_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -102,15 +102,21 @@ func (e *elasticRepo) Search(ctx context.Context, term string, options esclient.
 	defer span.Finish()
 	span.LogFields(log.String("term", term))
 
-	response, err := esclient.SearchMultiMatchPrefix[*domain.ElasticSearchProjection](ctx, e.client, esclient.SearchMatchPrefixRequest{
-		Index:  []string{e.cfg.ElasticIndexes.BankAccounts},
-		Term:   term,
-		Size:   options.Size,
-		From:   options.From,
-		Sort:   options.Sort,
-		Fields: options.Fields,
-		//SortMap: map[string]interface{}{"amount": "asc"},
-	})
+	searchMatchPrefixRequest := esclient.SearchMatchPrefixRequest{
+		Index:   []string{e.cfg.ElasticIndexes.BankAccounts},
+		Term:    term,
+		Size:    options.Size,
+		From:    options.From,
+		Sort:    []string{"balance.amount"},
+		Fields:  options.Fields,
+		SortMap: map[string]interface{}{"balance.amount": "asc"},
+	}
+
+	if options.Sort != nil {
+		searchMatchPrefixRequest.Sort = options.Sort
+	}
+
+	response, err := esclient.SearchMultiMatchPrefix[*domain.ElasticSearchProjection](ctx, e.client, searchMatchPrefixRequest)
 	if err != nil {
 		return nil, errors.Wrapf(err, "esclient.SearchMultiMatchPrefix term: %s", term)
 	}

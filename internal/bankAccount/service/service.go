@@ -13,17 +13,23 @@ type BankAccountService struct {
 	Queries  *queries.BankAccountQueries
 }
 
-func NewBankAccountService(log logger.Logger, es es.AggregateStore, mr domain.MongoRepository) *BankAccountService {
+func NewBankAccountService(
+	log logger.Logger,
+	aggregateStore es.AggregateStore,
+	mongoRepository domain.MongoRepository,
+	elasticSearchRepository domain.ElasticSearchRepository,
+) *BankAccountService {
 
 	bankAccountCommands := commands.NewBankAccountCommands(
-		commands.NewChangeEmailCmdHandler(log, es),
-		commands.NewDepositBalanceCmdHandler(log, es),
-		commands.NewCreateBankAccountCmdHandler(log, es),
-		commands.NewWithdrawBalanceCommandHandler(log, es),
+		commands.NewChangeEmailCmdHandler(log, aggregateStore),
+		commands.NewDepositBalanceCmdHandler(log, aggregateStore),
+		commands.NewCreateBankAccountCmdHandler(log, aggregateStore),
+		commands.NewWithdrawBalanceCommandHandler(log, aggregateStore),
 	)
 
 	newBankAccountQueries := queries.NewBankAccountQueries(
-		queries.NewGetBankAccountByIDQuery(log, es, mr),
+		queries.NewGetBankAccountByIDQuery(log, aggregateStore, mongoRepository),
+		queries.NewSearchBankAccountsQuery(log, aggregateStore, elasticSearchRepository),
 	)
 
 	return &BankAccountService{Commands: bankAccountCommands, Queries: newBankAccountQueries}

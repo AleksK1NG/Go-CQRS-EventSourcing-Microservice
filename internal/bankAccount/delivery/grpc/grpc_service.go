@@ -10,19 +10,20 @@ import (
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/grpc_errors"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/logger"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/tracing"
+	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/utils"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/proto/bank_account"
 	"github.com/opentracing/opentracing-go/log"
 	uuid "github.com/satori/go.uuid"
 )
 
 type grpcService struct {
-	log logger.Logger
-	cfg *config.Config
-	bs  *service.BankAccountService
+	log                logger.Logger
+	cfg                *config.Config
+	bankAccountService *service.BankAccountService
 }
 
-func NewGrpcService(log logger.Logger, cfg *config.Config, bs *service.BankAccountService) *grpcService {
-	return &grpcService{log: log, cfg: cfg, bs: bs}
+func NewGrpcService(log logger.Logger, cfg *config.Config, bankAccountService *service.BankAccountService) *grpcService {
+	return &grpcService{log: log, cfg: cfg, bankAccountService: bankAccountService}
 }
 
 func (g *grpcService) CreateBankAccount(ctx context.Context, request *bankAccountService.CreateBankAccountRequest) (*bankAccountService.CreateBankAccountResponse, error) {
@@ -41,7 +42,7 @@ func (g *grpcService) CreateBankAccount(ctx context.Context, request *bankAccoun
 		Status:      request.GetStatus(),
 	}
 
-	err := g.bs.Commands.CreateBankAccount.Handle(ctx, command)
+	err := g.bankAccountService.Commands.CreateBankAccount.Handle(ctx, command)
 	if err != nil {
 		g.log.Errorf("(CreateBankAccount.Handle) err: %v", err)
 		return nil, grpc_errors.ErrResponse(tracing.TraceWithErr(span, err))
@@ -61,7 +62,7 @@ func (g *grpcService) DepositBalance(ctx context.Context, request *bankAccountSe
 		PaymentID:   request.GetPaymentId(),
 	}
 
-	err := g.bs.Commands.DepositBalance.Handle(ctx, command)
+	err := g.bankAccountService.Commands.DepositBalance.Handle(ctx, command)
 	if err != nil {
 		g.log.Errorf("(DepositBalance.Handle) err: %v", err)
 		return nil, grpc_errors.ErrResponse(tracing.TraceWithErr(span, err))
@@ -81,7 +82,7 @@ func (g *grpcService) WithdrawBalance(ctx context.Context, request *bankAccountS
 		PaymentID:   request.GetPaymentId(),
 	}
 
-	err := g.bs.Commands.WithdrawBalance.Handle(ctx, command)
+	err := g.bankAccountService.Commands.WithdrawBalance.Handle(ctx, command)
 	if err != nil {
 		g.log.Errorf("(WithdrawBalance.Handle) err: %v", err)
 		return nil, grpc_errors.ErrResponse(tracing.TraceWithErr(span, err))
@@ -97,7 +98,7 @@ func (g *grpcService) ChangeEmail(ctx context.Context, request *bankAccountServi
 
 	command := commands.ChangeEmailCommand{AggregateID: request.GetId(), NewEmail: request.GetEmail()}
 
-	err := g.bs.Commands.ChangeEmail.Handle(ctx, command)
+	err := g.bankAccountService.Commands.ChangeEmail.Handle(ctx, command)
 	if err != nil {
 		g.log.Errorf("(ChangeEmail.Handle) err: %v", err)
 		return nil, grpc_errors.ErrResponse(tracing.TraceWithErr(span, err))
@@ -112,7 +113,7 @@ func (g *grpcService) GetById(ctx context.Context, request *bankAccountService.G
 	span.LogFields(log.String("req", request.String()))
 
 	query := queries.GetBankAccountByIDQuery{AggregateID: request.GetId(), FromEventStore: request.IsOwner}
-	bankAccountProjection, err := g.bs.Queries.GetBankAccountByID.Handle(ctx, query)
+	bankAccountProjection, err := g.bankAccountService.Queries.GetBankAccountByID.Handle(ctx, query)
 	if err != nil {
 		g.log.Errorf("(GetBankAccountByID.Handle) err: %v", err)
 		return nil, grpc_errors.ErrResponse(tracing.TraceWithErr(span, err))
@@ -123,7 +124,27 @@ func (g *grpcService) GetById(ctx context.Context, request *bankAccountService.G
 	return &bankAccountService.GetByIdResponse{BankAccount: mappers.BankAccountMongoProjectionToProto(bankAccountProjection)}, nil
 }
 
-func (g *grpcService) GetBankAccountByStatus(ctx context.Context, request *bankAccountService.GetBankAccountByStatusRequest) (*bankAccountService.GetBankAccountByStatusResponse, error) {
-	//TODO implement me
-	panic("implement me")
+func (g *grpcService) SearchBankAccounts(ctx context.Context, request *bankAccountService.SearchBankAccountsRequest) (*bankAccountService.SearchBankAccountsResponse, error) {
+	ctx, span := tracing.StartGrpcServerTracerSpan(ctx, "grpcService.SearchBankAccounts")
+	defer span.Finish()
+	span.LogFields(log.String("req", request.String()))
+
+	query := queries.SearchBankAccountsQuery{
+		QueryTerm: request.GetSearchText(),
+		Pagination: &utils.Pagination{
+			Size: int(request.GetSize()),
+			Page: int(request.GetPage()),
+		},
+	}
+	searchQueryResult, err := g.bankAccountService.Queries.SearchBankAccounts.Handle(ctx, query)
+	if err != nil {
+		g.log.Errorf("(SearchBankAccounts.Handle) err: %v", err)
+		return nil, grpc_errors.ErrResponse(tracing.TraceWithErr(span, err))
+	}
+
+	g.log.Infof("SearchBankAccounts result: %#v", searchQueryResult.PaginationResponse)
+	return &bankAccountService.SearchBankAccountsResponse{
+		BankAccounts: mappers.SearchBankAccountsListToProto(searchQueryResult.List),
+		Pagination:   mappers.PaginationResponseToProto(searchQueryResult.PaginationResponse),
+	}, nil
 }
