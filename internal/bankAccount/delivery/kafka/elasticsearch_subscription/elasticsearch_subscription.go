@@ -59,7 +59,7 @@ func (s *elasticSearchSubscription) ProcessMessagesErrGroup(ctx context.Context,
 
 		m, err := r.FetchMessage(ctx)
 		if err != nil {
-			s.log.Warnf("(elasticSearchSubscription) workerID: %v, err: %v", workerID, err)
+			s.log.Warnf("(elasticSearchSubscription) workerID: %d, err: %v", workerID, err)
 			continue
 		}
 
@@ -85,7 +85,6 @@ func (s *elasticSearchSubscription) handleBankAccountEvents(ctx context.Context,
 
 	for _, event := range events {
 		if err := s.handle(ctx, r, m, event); err != nil {
-			s.log.Errorf("handleBankAccountEvents handle err: %v", err)
 			return
 		}
 	}
@@ -98,40 +97,25 @@ func (s *elasticSearchSubscription) handle(ctx context.Context, r *kafka.Reader,
 
 	err := s.projection.When(ctx, event)
 	if err != nil {
-		s.log.Errorf("ElasticSearch Subscription When err: %v", err)
-
-		s.log.Warnf("ElasticSearch Subscription recreating projection >>>>> aggregateID: %s, version: %d, type: %s", event.GetAggregateID(), event.GetVersion(), event.GetEventType())
+		s.log.Errorf("ElasticSearchSubscription When err: %v", err)
 
 		recreateErr := s.recreateProjection(ctx, event)
 		if recreateErr != nil {
-			s.log.Errorf("ElasticSearch Subscription recreate projection >>>>> error err: %v", recreateErr)
-
-			//err := s.eventBus.ProcessEvents(ctx, []es.Event{event})
-			//if err != nil {
-			//	return tracing.TraceWithErr(span, errors.Wrapf(err, "ElasticSearchSubscription [eventBus] republish event err: %v", err))
-			//}
-
-			s.log.Warnf("ElasticSearch Subscription RECREATE PROJECTION REPUBLISHED EVENT >>>>>>>> aggregateID: %s, version: %d, type: %s", event.GetAggregateID(), event.GetVersion(), event.GetEventType())
 			return tracing.TraceWithErr(span, errors.Wrapf(recreateErr, "recreateProjection err: %v", err))
 		}
 
 		s.commitErrMessage(ctx, r, m)
-		return tracing.TraceWithErr(span, errors.Wrapf(err, "When type: %s, aggregateID: %s", event.GetEventType(), event.GetAggregateID()))
+		return tracing.TraceWithErr(span, errors.Wrapf(err, "ElasticSearchSubscription When type: %s, aggregateID: %s", event.GetEventType(), event.GetAggregateID()))
 	}
 
-	s.log.Infof("ElasticSearchSubscription projection handle event: %s", event.String())
+	s.log.Infof("ElasticSearchSubscription <<<commit>>> event: %s", event.String())
 	return nil
 }
 
 func (s *elasticSearchSubscription) recreateProjection(ctx context.Context, event es.Event) error {
 	span, ctx := opentracing.StartSpanFromContext(ctx, "elasticSearchSubscription.recreateProjection")
 	defer span.Finish()
-
-	//_, err := s.elasticSearchRepo.GetByAggregateID(ctx, event.GetAggregateID())
-	//if err != nil && strings.Contains(strings.ToLower(err.Error()), "404") {
-	//	s.log.Warnf("RECREATE ELASTIC NOT FOUND >>>>>>>>>>>>>>> err: %v", err)
-	//	return nil
-	//}
+	s.log.Warnf("ElasticSearch Subscription recreating projection >>>>> aggregateID: %s, version: %d, type: %s", event.GetAggregateID(), event.GetVersion(), event.GetEventType())
 
 	err := s.elasticSearchRepo.DeleteByAggregateID(ctx, event.GetAggregateID())
 	if err != nil {
@@ -142,16 +126,16 @@ func (s *elasticSearchSubscription) recreateProjection(ctx context.Context, even
 	bankAccountAggregate := domain.NewBankAccountAggregate(event.GetAggregateID())
 	err = s.aggregateStore.Load(ctx, bankAccountAggregate)
 	if err != nil {
-		s.log.Errorf("ElasticSearchSubscription as.Load err: %v", err)
-		return tracing.TraceWithErr(span, errors.Wrapf(err, "When as.Load type: %s, aggregateID: %s", event.GetEventType(), event.GetAggregateID()))
+		s.log.Errorf("ElasticSearchSubscription aggregateStore.Load err: %v", err)
+		return tracing.TraceWithErr(span, errors.Wrapf(err, "When aggregateStore.Load type: %s, aggregateID: %s", event.GetEventType(), event.GetAggregateID()))
 	}
 
 	err = s.elasticSearchRepo.Index(ctx, mappers.BankAccountToElasticProjection(bankAccountAggregate))
 	if err != nil {
 		s.log.Errorf("ElasticSearchSubscription Index err: %v", err)
-		return tracing.TraceWithErr(span, errors.Wrapf(err, "When Index type: %s, aggregateID: %s", event.GetEventType(), event.GetAggregateID()))
+		return tracing.TraceWithErr(span, errors.Wrapf(err, "ElasticSearchSubscription When Index type: %s, aggregateID: %s", event.GetEventType(), event.GetAggregateID()))
 	}
 
-	s.log.Infof("[ElasticSearchSubscription]  ***projection recreated commit*** aggregateID: %s, version: %d", event.GetAggregateID(), bankAccountAggregate.GetVersion())
+	s.log.Infof("[ElasticSearchSubscription] <<<projection recreated commit>>> aggregateID: %s, version: %d", event.GetAggregateID(), bankAccountAggregate.GetVersion())
 	return nil
 }

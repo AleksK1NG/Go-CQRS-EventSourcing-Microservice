@@ -3,7 +3,7 @@ package esclient
 import (
 	"bytes"
 	"context"
-	"encoding/json"
+	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/es/serializer"
 	"github.com/elastic/go-elasticsearch/v8/esapi"
 )
 
@@ -51,7 +51,7 @@ func SearchMultiMatchPrefix[T any](ctx context.Context, transport esapi.Transpor
 		//searchQuery["sort"] = []interface{}{"_score", map[string]interface{}{"age": "asc"}}
 	}
 
-	queryBytes, err := json.Marshal(&matchSearchQuery)
+	queryBytes, err := serializer.Marshal(&matchSearchQuery)
 	if err != nil {
 		return nil, err
 	}
@@ -72,7 +72,7 @@ func SearchMultiMatchPrefix[T any](ctx context.Context, transport esapi.Transpor
 	defer response.Body.Close()
 
 	hits := EsHits[T]{}
-	err = json.NewDecoder(response.Body).Decode(&hits)
+	err = serializer.NewDecoder(response.Body).Decode(&hits)
 	if err != nil {
 		return nil, err
 	}

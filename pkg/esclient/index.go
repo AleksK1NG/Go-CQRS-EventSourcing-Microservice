@@ -3,13 +3,13 @@ package esclient
 import (
 	"bytes"
 	"context"
-	"encoding/json"
+	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/es/serializer"
 	"github.com/elastic/go-elasticsearch/v8/esapi"
 	"github.com/pkg/errors"
 )
 
 func Index(ctx context.Context, transport esapi.Transport, index, documentID string, v any) (*esapi.Response, error) {
-	reqBytes, err := json.Marshal(v)
+	reqBytes, err := serializer.Marshal(v)
 	if err != nil {
 		return nil, errors.Wrap(err, "json.Marshal")
 	}
