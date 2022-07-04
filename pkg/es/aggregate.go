@@ -2,7 +2,6 @@ package es
 
 import (
 	"fmt"
-	"github.com/pkg/errors"
 )
 
 const (
@@ -175,21 +174,4 @@ func (a *AggregateBase) String() string {
 		a.GetVersion(),
 		len(a.GetChanges()),
 	)
-}
-
-func (a *AggregateBase) validateVersion(event Event) error {
-	if a.GetVersion() != event.GetVersion() {
-		return errors.New("invalid event version")
-	}
-	return nil
-}
-
-func (a *AggregateBase) validateEvent(event Event) error {
-	if event.GetAggregateID() != a.GetID() {
-		return ErrInvalidAggregateID
-	}
-	if event.GetAggregateType() != a.GetType() {
-		return ErrInvalidEventType
-	}
-	return nil
 }
