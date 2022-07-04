@@ -6,7 +6,7 @@ http:
   port: :5007
   development: true
   basePath: /api/v1
-  ordersPath: /api/v1/orders
+  bankAccountsPath: /api/v1/accounts
   debugErrorsResponse: true
   ignoreLogUrls: [ "metrics", "swagger" ]
 probes:

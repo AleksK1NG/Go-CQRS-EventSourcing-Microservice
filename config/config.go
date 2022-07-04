@@ -78,7 +78,7 @@ type Http struct {
 	Port                string   `mapstructure:"port" validate:"required"`
 	Development         bool     `mapstructure:"development"`
 	BasePath            string   `mapstructure:"basePath" validate:"required"`
-	OrdersPath          string   `mapstructure:"ordersPath" validate:"required"`
+	BankAccountsPath    string   `mapstructure:"bankAccountsPath" validate:"required"`
 	DebugErrorsResponse bool     `mapstructure:"debugErrorsResponse"`
 	IgnoreLogUrls       []string `mapstructure:"ignoreLogUrls"`
 }
