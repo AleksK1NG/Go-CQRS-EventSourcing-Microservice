@@ -5,7 +5,6 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 	"strings"
 	"time"
-	//echoSwagger "github.com/swaggo/echo-swagger"
 )
 
 const (
@@ -28,14 +27,6 @@ func (a *app) runHttpServer() error {
 }
 
 func (a *app) mapRoutes() {
-	//docs.SwaggerInfo_swagger.Version = "1.0"
-	//docs.SwaggerInfo_swagger.Title = "EventSourcing Microservice"
-	//docs.SwaggerInfo_swagger.Description = "EventSourcing CQRS Microservice."
-	//docs.SwaggerInfo_swagger.Version = "1.0"
-	//docs.SwaggerInfo_swagger.BasePath = "/api/v1"
-
-	//a.echo.GET("/swagger/*", echoSwagger.WrapHandler)
-
 	a.echo.Use(a.middlewareManager.RequestLoggerMiddleware)
 	a.echo.Use(middleware.RecoverWithConfig(middleware.RecoverConfig{
 		StackSize:         stackSize,

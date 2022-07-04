@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	bankAccountErrors "github.com/AleksK1NG/go-cqrs-eventsourcing/internal/bankAccount/errors"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/constants"
 	"github.com/pkg/errors"
 	"net/http"
@@ -174,6 +175,8 @@ func NewInternalServerError(ctx echo.Context, causes interface{}, debug bool) er
 // ParseErrors Parser of error string messages returns RestError
 func ParseErrors(err error, debug bool) RestErr {
 	switch {
+	case errors.Is(err, bankAccountErrors.ErrBankAccountNotFound):
+		return NewRestError(http.StatusNotFound, ErrNotFound, err.Error(), debug)
 	case errors.Is(err, sql.ErrNoRows):
 		return NewRestError(http.StatusNotFound, ErrNotFound, err.Error(), debug)
 	case errors.Is(err, context.DeadlineExceeded):
@@ -224,6 +227,9 @@ func ErrorResponse(err error, debug bool) (int, interface{}) {
 
 // ErrorCtxResponse Error response object and status code
 func ErrorCtxResponse(ctx echo.Context, err error, debug bool) error {
-	restErr := ParseErrors(err, debug)
-	return ctx.JSON(restErr.Status(), restErr)
+	if err != nil {
+		restErr := ParseErrors(err, debug)
+		return ctx.JSON(restErr.Status(), restErr)
+	}
+	return ctx.JSON(http.StatusInternalServerError, ErrInternalServerError)
 }
