@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/config"
+	v1 "github.com/AleksK1NG/go-cqrs-eventsourcing/internal/bankAccount/delivery/http/v1"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/internal/bankAccount/delivery/kafka/elasticsearch_subscription"
 	bankAccountMongoSubscription "github.com/AleksK1NG/go-cqrs-eventsourcing/internal/bankAccount/delivery/kafka/mongo_subscription"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/internal/bankAccount/domain"
@@ -139,6 +140,8 @@ func (a *app) Run() error {
 
 	a.bankAccountService = service.NewBankAccountService(a.log, eventStore, mongoRepository, elasticSearchRepository)
 
+	v1.NewBankAccountHandlers(a.echo.Group(a.cfg.Http.BasePath), a.middlewareManager, a.log, &a.cfg, a.bankAccountService, a.validate).MapRoutes()
+
 	mongoSubscription := bankAccountMongoSubscription.NewBankAccountMongoSubscription(
 		a.log,
 		&a.cfg,
@@ -204,7 +207,7 @@ func (a *app) Run() error {
 
 	go func() {
 		if err := a.runHttpServer(); err != nil {
-			a.log.Errorf("(a.runHttpServer) err: %v", err)
+			a.log.Errorf("(runHttpServer) err: %v", err)
 			cancel()
 		}
 	}()

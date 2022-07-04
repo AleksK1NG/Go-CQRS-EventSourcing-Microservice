@@ -15,6 +15,7 @@ import (
 	"github.com/labstack/echo/v4"
 	uuid "github.com/satori/go.uuid"
 	"net/http"
+	"strconv"
 )
 
 type bankAccountHandlers struct {
@@ -44,15 +45,6 @@ func NewBankAccountHandlers(
 	}
 }
 
-// CreateBankAccount
-// @Tags BankAccounts
-// @Summary Create BankAccount
-// @Description Create new Bank Account
-// @Param BankAccount body commands.CreateBankAccountCommand true "create Bank Account"
-// @Accept json
-// @Produce json
-// @Success 201 {string} id ""
-// @Router /accounts [post]
 func (h *bankAccountHandlers) CreateBankAccount() echo.HandlerFunc {
 	return func(c echo.Context) error {
 		ctx, span := tracing.StartHttpServerTracerSpan(c, "bankAccountHandlers.CreateBankAccount")
@@ -82,16 +74,6 @@ func (h *bankAccountHandlers) CreateBankAccount() echo.HandlerFunc {
 	}
 }
 
-// DepositBalance
-// @Tags BankAccounts
-// @Summary Create BankAccount
-// @Description Create new Bank Account
-// @Param BankAccount body commands.DepositBalanceCommand true "create Bank Account"
-// @Accept json
-// @Produce json
-// @Param id path string true "bank account ID"
-// @Success 200 {string} id ""
-// @Router /accounts/deposit/{id} [post]
 func (h *bankAccountHandlers) DepositBalance() echo.HandlerFunc {
 	return func(c echo.Context) error {
 		ctx, span := tracing.StartHttpServerTracerSpan(c, "bankAccountHandlers.DepositBalance")
@@ -121,16 +103,6 @@ func (h *bankAccountHandlers) DepositBalance() echo.HandlerFunc {
 	}
 }
 
-// WithdrawBalance
-// @Tags BankAccounts
-// @Summary Withdraw balance amount
-// @Description Withdraw balance amount
-// @Param BankAccount body commands.WithdrawBalanceCommand true "Withdraw balance amount"
-// @Accept json
-// @Produce json
-// @Param id path string true "bank account ID"
-// @Success 200 {string} id ""
-// @Router /accounts/withdraw/{id} [post]
 func (h *bankAccountHandlers) WithdrawBalance() echo.HandlerFunc {
 	return func(c echo.Context) error {
 		ctx, span := tracing.StartHttpServerTracerSpan(c, "bankAccountHandlers.WithdrawBalance")
@@ -160,16 +132,6 @@ func (h *bankAccountHandlers) WithdrawBalance() echo.HandlerFunc {
 	}
 }
 
-// ChangeEmail
-// @Tags BankAccounts
-// @Summary Change Email
-// @Description Change account email
-// @Param BankAccount body commands.WithdrawBalanceCommand true "Change account email"
-// @Accept json
-// @Produce json
-// @Param id path string true "bank account ID"
-// @Success 200 {string} id ""
-// @Router /accounts/email/{id} [post]
 func (h *bankAccountHandlers) ChangeEmail() echo.HandlerFunc {
 	return func(c echo.Context) error {
 		ctx, span := tracing.StartHttpServerTracerSpan(c, "bankAccountHandlers.WithdrawBalance")
@@ -199,16 +161,6 @@ func (h *bankAccountHandlers) ChangeEmail() echo.HandlerFunc {
 	}
 }
 
-// GetByID
-// @Tags BankAccounts
-// @Summary Get bank account by id
-// @Description Get bank account by id
-// @Param BankAccount body queries.GetBankAccountByIDQuery true "Get bank account by id"
-// @Accept json
-// @Produce json
-// @Param id path string true "bank account ID"
-// @Success 200 {object} domain.BankAccountMongoProjection
-// @Router /accounts/{id} [get]
 func (h *bankAccountHandlers) GetByID() echo.HandlerFunc {
 	return func(c echo.Context) error {
 		ctx, span := tracing.StartHttpServerTracerSpan(c, "bankAccountHandlers.GetByID")
@@ -220,7 +172,18 @@ func (h *bankAccountHandlers) GetByID() echo.HandlerFunc {
 			h.log.Errorf("(Bind) err: %v", tracing.TraceWithErr(span, err))
 			return httpErrors.ErrorCtxResponse(c, err, h.cfg.Http.DebugErrorsResponse)
 		}
+
 		query.AggregateID = c.Param(constants.ID)
+
+		fromStore := c.QueryParam("store")
+		if fromStore != "" {
+			isFromStore, err := strconv.ParseBool(fromStore)
+			if err != nil {
+				h.log.Errorf("strconv.ParseBool err: %v", tracing.TraceWithErr(span, err))
+				return httpErrors.ErrorCtxResponse(c, err, h.cfg.Http.DebugErrorsResponse)
+			}
+			query.FromEventStore = isFromStore
+		}
 
 		if err := h.validate.StructCtx(ctx, query); err != nil {
 			h.log.Errorf("(validate) err: %v", tracing.TraceWithErr(span, err))
@@ -229,26 +192,15 @@ func (h *bankAccountHandlers) GetByID() echo.HandlerFunc {
 
 		bankAccountProjection, err := h.bankAccountService.Queries.GetBankAccountByID.Handle(ctx, query)
 		if err != nil {
-			h.log.Errorf("(ChangeEmail.Handle) id: %s, err: %v", bankAccountProjection.AggregateID, tracing.TraceWithErr(span, err))
+			h.log.Errorf("(ChangeEmail.Handle) id: %s, err: %v", query.AggregateID, tracing.TraceWithErr(span, err))
 			return httpErrors.ErrorCtxResponse(c, err, h.cfg.Http.DebugErrorsResponse)
 		}
 
-		h.log.Infof("(get bank account) id: %s, amount: %d", bankAccountProjection.AggregateID)
+		h.log.Infof("(get bank account) id: %s", bankAccountProjection.AggregateID)
 		return c.JSON(http.StatusOK, bankAccountProjection)
 	}
 }
 
-// Search
-// @Tags BankAccounts
-// @Summary Get bank account by id
-// @Description Get bank account by id
-// @Param BankAccount body queries.GetBankAccountByIDQuery true "Get bank account by id"
-// @Accept json
-// @Produce json
-// @Param id path string true "bank account ID"
-// @Param search path string true "search term"
-// @Success 200 {object} queries.SearchQueryResult
-// @Router /accounts/search [get]
 func (h *bankAccountHandlers) Search() echo.HandlerFunc {
 	return func(c echo.Context) error {
 		ctx, span := tracing.StartHttpServerTracerSpan(c, "bankAccountHandlers.Search")
@@ -261,7 +213,7 @@ func (h *bankAccountHandlers) Search() echo.HandlerFunc {
 			return httpErrors.ErrorCtxResponse(c, err, h.cfg.Http.DebugErrorsResponse)
 		}
 
-		query.QueryTerm = c.Param("search")
+		query.QueryTerm = c.QueryParam("search")
 		query.Pagination = utils.NewPaginationFromQueryParams(c.QueryParam(constants.Size), c.QueryParam(constants.Page))
 
 		if err := h.validate.StructCtx(ctx, query); err != nil {
