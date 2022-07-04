@@ -17,21 +17,37 @@ func (a *app) initMongoDBCollections(ctx context.Context) {
 		}
 	}
 
-	indexOptions := options.Index().
+	aggregateIdIndexOptions := options.Index().
 		SetSparse(true).
 		SetUnique(true)
 
-	index, err := a.mongoClient.Database(a.cfg.Mongo.Db).
+	aggregateIdIndex, err := a.mongoClient.Database(a.cfg.Mongo.Db).
 		Collection(a.cfg.MongoCollections.BankAccounts).
 		Indexes().
 		CreateOne(ctx, mongo.IndexModel{
 			Keys:    bson.D{{Key: "aggregateID", Value: 1}},
-			Options: indexOptions,
+			Options: aggregateIdIndexOptions,
 		})
 	if err != nil && !utils.CheckErrForMessagesCaseInSensitive(err, serviceErrors.ErrMsgAlreadyExists) {
 		a.log.Warnf("(CreateOne) err: %v", err)
 	}
-	a.log.Infof("(CreatedIndex) index: %s", index)
+	a.log.Infof("(CreatedIndex) aggregateIdIndex: %s", aggregateIdIndex)
+
+	emailIndexOptions := options.Index().
+		SetSparse(true).
+		SetUnique(true)
+
+	emailIndex, err := a.mongoClient.Database(a.cfg.Mongo.Db).
+		Collection(a.cfg.MongoCollections.BankAccounts).
+		Indexes().
+		CreateOne(ctx, mongo.IndexModel{
+			Keys:    bson.D{{Key: "email", Value: 1}},
+			Options: emailIndexOptions,
+		})
+	if err != nil && !utils.CheckErrForMessagesCaseInSensitive(err, serviceErrors.ErrMsgAlreadyExists) {
+		a.log.Warnf("(CreateOne) err: %v", err)
+	}
+	a.log.Infof("(CreatedIndex) emailIndex: %s", emailIndex)
 
 	list, err := a.mongoClient.Database(a.cfg.Mongo.Db).Collection(a.cfg.MongoCollections.BankAccounts).Indexes().List(ctx)
 	if err != nil {
@@ -43,12 +59,12 @@ func (a *app) initMongoDBCollections(ctx context.Context) {
 		if err := list.All(ctx, &results); err != nil {
 			a.log.Warnf("(All) err: %v", err)
 		}
-		a.log.Infof("(indexes) results: {%#v}", results)
+		a.log.Infof("(indexes) results: %+v", results)
 	}
 
 	collections, err := a.mongoClient.Database(a.cfg.Mongo.Db).ListCollectionNames(ctx, bson.M{})
 	if err != nil {
 		a.log.Warnf("(ListCollections) err: %v", err)
 	}
-	a.log.Infof("(Collections) created collections: %v", collections)
+	a.log.Infof("(Collections) created collections: %+v", collections)
 }

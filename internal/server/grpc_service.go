@@ -1,7 +1,7 @@
 package server
 
 import (
-	grpc2 "github.com/AleksK1NG/go-cqrs-eventsourcing/internal/bankAccount/delivery/grpc"
+	bankAccountGrpcService "github.com/AleksK1NG/go-cqrs-eventsourcing/internal/bankAccount/delivery/grpc"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/constants"
 	bankAccountService "github.com/AleksK1NG/go-cqrs-eventsourcing/proto/bank_account"
 	"github.com/pkg/errors"
@@ -35,12 +35,12 @@ func (a *app) newBankAccountGrpcServer() (func() error, *grpc.Server, error) {
 			grpc_ctxtags.UnaryServerInterceptor(),
 			grpc_prometheus.UnaryServerInterceptor,
 			grpc_recovery.UnaryServerInterceptor(),
-			a.im.Logger,
+			a.interceptorManager.Logger,
 		),
 		),
 	)
 
-	bankAccountGrpcService := grpc2.NewGrpcService(a.log, &a.cfg, a.bs)
+	bankAccountGrpcService := bankAccountGrpcService.NewGrpcService(a.log, &a.cfg, a.bankAccountService, a.validate)
 	bankAccountService.RegisterBankAccountServiceServer(grpcServer, bankAccountGrpcService)
 	grpc_prometheus.Register(grpcServer)
 

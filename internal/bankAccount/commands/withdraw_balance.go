@@ -10,9 +10,9 @@ import (
 )
 
 type WithdrawBalanceCommand struct {
-	AggregateID string `json:"aggregateID"`
-	Amount      int64  `json:"amount"`
-	PaymentID   string `json:"paymentID"`
+	AggregateID string `json:"aggregateID" validate:"required,gte=0"`
+	Amount      int64  `json:"amount" validate:"required,gte=0"`
+	PaymentID   string `json:"paymentID" validate:"required,gte=0"`
 }
 
 type WithdrawBalance interface {

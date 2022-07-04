@@ -12,6 +12,7 @@ import (
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/tracing"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/utils"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/proto/bank_account"
+	"github.com/go-playground/validator"
 	"github.com/opentracing/opentracing-go/log"
 	uuid "github.com/satori/go.uuid"
 )
@@ -20,10 +21,16 @@ type grpcService struct {
 	log                logger.Logger
 	cfg                *config.Config
 	bankAccountService *service.BankAccountService
+	validate           *validator.Validate
 }
 
-func NewGrpcService(log logger.Logger, cfg *config.Config, bankAccountService *service.BankAccountService) *grpcService {
-	return &grpcService{log: log, cfg: cfg, bankAccountService: bankAccountService}
+func NewGrpcService(
+	log logger.Logger,
+	cfg *config.Config,
+	bankAccountService *service.BankAccountService,
+	validate *validator.Validate,
+) *grpcService {
+	return &grpcService{log: log, cfg: cfg, bankAccountService: bankAccountService, validate: validate}
 }
 
 func (g *grpcService) CreateBankAccount(ctx context.Context, request *bankAccountService.CreateBankAccountRequest) (*bankAccountService.CreateBankAccountResponse, error) {
@@ -38,8 +45,13 @@ func (g *grpcService) CreateBankAccount(ctx context.Context, request *bankAccoun
 		Address:     request.GetAddress(),
 		FirstName:   request.GetFirstName(),
 		LastName:    request.GetLastName(),
-		Balance:     0,
+		Balance:     request.GetBalance(),
 		Status:      request.GetStatus(),
+	}
+
+	if err := g.validate.StructCtx(ctx, command); err != nil {
+		g.log.Errorf("validation err: %v", err)
+		return nil, grpc_errors.ErrResponse(tracing.TraceWithErr(span, err))
 	}
 
 	err := g.bankAccountService.Commands.CreateBankAccount.Handle(ctx, command)
@@ -48,6 +60,7 @@ func (g *grpcService) CreateBankAccount(ctx context.Context, request *bankAccoun
 		return nil, grpc_errors.ErrResponse(tracing.TraceWithErr(span, err))
 	}
 
+	g.log.Infof("(grpcService) [created account] aggregateID: %s", aggregateID)
 	return &bankAccountService.CreateBankAccountResponse{Id: aggregateID}, nil
 }
 
@@ -62,12 +75,18 @@ func (g *grpcService) DepositBalance(ctx context.Context, request *bankAccountSe
 		PaymentID:   request.GetPaymentId(),
 	}
 
+	if err := g.validate.StructCtx(ctx, command); err != nil {
+		g.log.Errorf("validation err: %v", err)
+		return nil, grpc_errors.ErrResponse(tracing.TraceWithErr(span, err))
+	}
+
 	err := g.bankAccountService.Commands.DepositBalance.Handle(ctx, command)
 	if err != nil {
 		g.log.Errorf("(DepositBalance.Handle) err: %v", err)
 		return nil, grpc_errors.ErrResponse(tracing.TraceWithErr(span, err))
 	}
 
+	g.log.Infof("(grpcService) [deposited balance] aggregateID: %s, amount: %v", request.GetId(), request.GetAmount())
 	return new(bankAccountService.DepositBalanceResponse), nil
 }
 
@@ -82,12 +101,18 @@ func (g *grpcService) WithdrawBalance(ctx context.Context, request *bankAccountS
 		PaymentID:   request.GetPaymentId(),
 	}
 
+	if err := g.validate.StructCtx(ctx, command); err != nil {
+		g.log.Errorf("validation err: %v", err)
+		return nil, grpc_errors.ErrResponse(tracing.TraceWithErr(span, err))
+	}
+
 	err := g.bankAccountService.Commands.WithdrawBalance.Handle(ctx, command)
 	if err != nil {
 		g.log.Errorf("(WithdrawBalance.Handle) err: %v", err)
 		return nil, grpc_errors.ErrResponse(tracing.TraceWithErr(span, err))
 	}
 
+	g.log.Infof("(grpcService) [withdraw balance] aggregateID: %s, amount: %v", request.GetId(), request.GetAmount())
 	return new(bankAccountService.WithdrawBalanceResponse), nil
 }
 
@@ -98,12 +123,18 @@ func (g *grpcService) ChangeEmail(ctx context.Context, request *bankAccountServi
 
 	command := commands.ChangeEmailCommand{AggregateID: request.GetId(), NewEmail: request.GetEmail()}
 
+	if err := g.validate.StructCtx(ctx, command); err != nil {
+		g.log.Errorf("validation err: %v", err)
+		return nil, grpc_errors.ErrResponse(tracing.TraceWithErr(span, err))
+	}
+
 	err := g.bankAccountService.Commands.ChangeEmail.Handle(ctx, command)
 	if err != nil {
 		g.log.Errorf("(ChangeEmail.Handle) err: %v", err)
 		return nil, grpc_errors.ErrResponse(tracing.TraceWithErr(span, err))
 	}
 
+	g.log.Infof("(grpcService) [changed email] aggregateID: %s, newEmail: %s", request.GetId(), request.GetEmail())
 	return new(bankAccountService.ChangeEmailResponse), nil
 }
 
@@ -113,14 +144,19 @@ func (g *grpcService) GetById(ctx context.Context, request *bankAccountService.G
 	span.LogFields(log.String("req", request.String()))
 
 	query := queries.GetBankAccountByIDQuery{AggregateID: request.GetId(), FromEventStore: request.IsOwner}
+
+	if err := g.validate.StructCtx(ctx, query); err != nil {
+		g.log.Errorf("validation err: %v", err)
+		return nil, grpc_errors.ErrResponse(tracing.TraceWithErr(span, err))
+	}
+
 	bankAccountProjection, err := g.bankAccountService.Queries.GetBankAccountByID.Handle(ctx, query)
 	if err != nil {
 		g.log.Errorf("(GetBankAccountByID.Handle) err: %v", err)
 		return nil, grpc_errors.ErrResponse(tracing.TraceWithErr(span, err))
 	}
 
-	g.log.Infof("GetById bankAccountProjection: %#v", bankAccountProjection)
-
+	g.log.Infof("(grpcService) [get account by id] projection: %#+v", bankAccountProjection)
 	return &bankAccountService.GetByIdResponse{BankAccount: mappers.BankAccountMongoProjectionToProto(bankAccountProjection)}, nil
 }
 
@@ -136,13 +172,19 @@ func (g *grpcService) SearchBankAccounts(ctx context.Context, request *bankAccou
 			Page: int(request.GetPage()),
 		},
 	}
+
+	if err := g.validate.StructCtx(ctx, query); err != nil {
+		g.log.Errorf("validation err: %v", err)
+		return nil, grpc_errors.ErrResponse(tracing.TraceWithErr(span, err))
+	}
+
 	searchQueryResult, err := g.bankAccountService.Queries.SearchBankAccounts.Handle(ctx, query)
 	if err != nil {
 		g.log.Errorf("(SearchBankAccounts.Handle) err: %v", err)
 		return nil, grpc_errors.ErrResponse(tracing.TraceWithErr(span, err))
 	}
 
-	g.log.Infof("SearchBankAccounts result: %#v", searchQueryResult.PaginationResponse)
+	g.log.Infof("(grpcService) [search] result: %#v", searchQueryResult.PaginationResponse)
 	return &bankAccountService.SearchBankAccountsResponse{
 		BankAccounts: mappers.SearchBankAccountsListToProto(searchQueryResult.List),
 		Pagination:   mappers.PaginationResponseToProto(searchQueryResult.PaginationResponse),

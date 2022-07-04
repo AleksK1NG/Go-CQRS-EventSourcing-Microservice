@@ -18,7 +18,7 @@ func (a *app) runMetrics(cancel context.CancelFunc) {
 		metricsServer.GET(a.cfg.Probes.PrometheusPath, echo.WrapHandler(promhttp.Handler()))
 		a.log.Infof("Metrics app is running on port: %s", a.cfg.Probes.PrometheusPort)
 		if err := metricsServer.Start(a.cfg.Probes.PrometheusPort); err != nil {
-			a.log.Errorf("metricsServer.Start: {%v}", err)
+			a.log.Errorf("metricsServer.Start: %v", err)
 			cancel()
 		}
 	}()
