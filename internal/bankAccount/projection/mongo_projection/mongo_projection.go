@@ -145,10 +145,3 @@ func (b *bankAccountMongoProjection) onEmailChanged(ctx context.Context, esEvent
 	b.log.Infof("[onEmailChanged] aggregateID: %s, eventType: %s, version: %d", esEvent.GetAggregateID(), esEvent.GetEventType(), esEvent.GetVersion())
 	return nil
 }
-
-func (b *bankAccountMongoProjection) validateEventVersion(version uint64, esEvent es.Event) error {
-	if version != esEvent.GetVersion()-1 {
-		return errors.Wrapf(es.ErrInvalidEventVersion, "type: %s, version: %d", esEvent.GetEventType(), esEvent.GetVersion())
-	}
-	return nil
-}

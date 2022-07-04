@@ -167,7 +167,7 @@ func (e *elasticProjection) onEmailChanged(ctx context.Context, esEvent es.Event
 
 func (e *elasticProjection) validateEventVersion(version uint64, esEvent es.Event) error {
 	if version != esEvent.GetVersion()-1 {
-		return errors.Wrapf(es.ErrInvalidEventVersion, "type: %s, version: %d", esEvent.GetEventType(), esEvent.GetVersion())
+		return errors.Wrapf(es.ErrInvalidEventVersion, "type: %s, eventVersion: %d, projectionVersion: %d", esEvent.GetEventType(), esEvent.GetVersion(), version)
 	}
 	return nil
 }
