@@ -42,6 +42,7 @@ message CreateBankAccountRequest {
   string lastName = 3;
   string address = 4;
   string status = 5;
+  int64 balance = 6;
 }
 
 message CreateBankAccountResponse {

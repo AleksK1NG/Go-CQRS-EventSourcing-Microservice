@@ -10,8 +10,8 @@ import (
 )
 
 type ChangeEmailCommand struct {
-	AggregateID string `json:"aggregateID"`
-	NewEmail    string `json:"newEmail"`
+	AggregateID string `json:"aggregateID" validate:"required,gte=0"`
+	NewEmail    string `json:"newEmail" validate:"required,gte=0,email"`
 }
 
 type ChangeEmail interface {

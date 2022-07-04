@@ -14,7 +14,7 @@ import (
 )
 
 type GetBankAccountByIDQuery struct {
-	AggregateID    string `json:"aggregateID"`
+	AggregateID    string `json:"aggregateID" validate:"required,gte=0"`
 	FromEventStore bool   `json:"fromEventStore"`
 }
 

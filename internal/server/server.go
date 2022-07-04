@@ -43,25 +43,25 @@ const (
 )
 
 type app struct {
-	log           logger.Logger
-	cfg           config.Config
-	im            interceptors.InterceptorManager
-	mw            middlewares.MiddlewareManager
-	probesSrv     *http.Server
-	v             *validator.Validate
-	metrics       *metrics.ESMicroserviceMetrics
-	kafkaConn     *kafka.Conn
-	pgxConn       *pgxpool.Pool
-	mongoClient   *mongo.Client
-	doneCh        chan struct{}
-	elasticClient *elasticsearch.Client
-	echo          *echo.Echo
-	ps            *http.Server
-	bs            *service.BankAccountService
+	log                logger.Logger
+	cfg                config.Config
+	interceptorManager interceptors.InterceptorManager
+	middlewareManager  middlewares.MiddlewareManager
+	probesSrv          *http.Server
+	validate           *validator.Validate
+	metrics            *metrics.ESMicroserviceMetrics
+	kafkaConn          *kafka.Conn
+	pgxConn            *pgxpool.Pool
+	mongoClient        *mongo.Client
+	doneCh             chan struct{}
+	elasticClient      *elasticsearch.Client
+	echo               *echo.Echo
+	probeServer        *http.Server
+	bankAccountService *service.BankAccountService
 }
 
 func NewApp(log logger.Logger, cfg config.Config) *app {
-	return &app{log: log, cfg: cfg, v: validator.New(), doneCh: make(chan struct{}), echo: echo.New()}
+	return &app{log: log, cfg: cfg, validate: validator.New(), doneCh: make(chan struct{}), echo: echo.New()}
 }
 
 func (a *app) Run() error {
@@ -79,8 +79,8 @@ func (a *app) Run() error {
 	}
 
 	a.metrics = metrics.NewESMicroserviceMetrics(a.cfg)
-	a.im = interceptors.NewInterceptorManager(a.log, a.getGrpcMetricsCb())
-	a.mw = middlewares.NewMiddlewareManager(a.log, a.cfg, a.getHttpMetricsCb())
+	a.interceptorManager = interceptors.NewInterceptorManager(a.log, a.getGrpcMetricsCb())
+	a.middlewareManager = middlewares.NewMiddlewareManager(a.log, a.cfg, a.getHttpMetricsCb())
 
 	// connect postgres
 	if err := a.connectPostgres(ctx); err != nil {
@@ -137,12 +137,12 @@ func (a *app) Run() error {
 	elasticSearchRepository := elasticsearch_repository.NewElasticRepository(a.log, &a.cfg, a.elasticClient)
 	elasticSearchProjection := elasticsearch_projection.NewElasticProjection(a.log, &a.cfg, eventSerializer, elasticSearchRepository)
 
-	a.bs = service.NewBankAccountService(a.log, eventStore, mongoRepository, elasticSearchRepository)
+	a.bankAccountService = service.NewBankAccountService(a.log, eventStore, mongoRepository, elasticSearchRepository)
 
 	mongoSubscription := bankAccountMongoSubscription.NewBankAccountMongoSubscription(
 		a.log,
 		&a.cfg,
-		a.bs,
+		a.bankAccountService,
 		mongoProjection,
 		eventSerializer,
 		mongoRepository,
@@ -168,7 +168,7 @@ func (a *app) Run() error {
 	elasticSearchSubscription := elasticsearch_subscription.NewElasticSearchSubscription(
 		a.log,
 		&a.cfg,
-		a.bs,
+		a.bankAccountService,
 		elasticSearchProjection,
 		eventSerializer,
 		elasticSearchRepository,
@@ -208,7 +208,7 @@ func (a *app) Run() error {
 			cancel()
 		}
 	}()
-	a.log.Infof("%a is listening on PORT: %a", GetMicroserviceName(a.cfg), a.cfg.Http.Port)
+	a.log.Infof("%s is listening on PORT: %v", GetMicroserviceName(a.cfg), a.cfg.Http.Port)
 
 	<-ctx.Done()
 	a.waitShootDown(waitShotDownDuration)
@@ -222,6 +222,6 @@ func (a *app) Run() error {
 	}
 
 	<-a.doneCh
-	a.log.Infof("%a app exited properly", GetMicroserviceName(a.cfg))
+	a.log.Infof("%s app exited properly", GetMicroserviceName(a.cfg))
 	return nil
 }

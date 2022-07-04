@@ -12,12 +12,12 @@ import (
 )
 
 type CreateBankAccountCommand struct {
-	AggregateID string `json:"id"`
-	Email       string `json:"email"`
-	Address     string `json:"address"`
-	FirstName   string `json:"firstName"`
-	LastName    string `json:"lastName"`
-	Balance     int64  `json:"balance"`
+	AggregateID string `json:"id" validate:"required,gte=0"`
+	Email       string `json:"email" validate:"required,gte=0,email"`
+	Address     string `json:"address" validate:"required,gte=0"`
+	FirstName   string `json:"firstName" validate:"required,gte=0"`
+	LastName    string `json:"lastName" validate:"required,gte=0"`
+	Balance     int64  `json:"balance" validate:"gte=0"`
 	Status      string `json:"status"`
 }
 

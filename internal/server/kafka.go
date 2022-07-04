@@ -37,7 +37,7 @@ func (a *app) initKafkaTopics(ctx context.Context) {
 	}
 
 	controllerURI := net.JoinHostPort(controller.Host, strconv.Itoa(controller.Port))
-	a.log.Infof("(kafka controller uri) controllerURI: %a", controllerURI)
+	a.log.Infof("(kafka controller uri) controllerURI: %s", controllerURI)
 
 	conn, err := kafka.DialContext(ctx, constants.TCP, controllerURI)
 	if err != nil {
@@ -46,7 +46,7 @@ func (a *app) initKafkaTopics(ctx context.Context) {
 	}
 	defer conn.Close() // nolint: errcheck
 
-	a.log.Infof("(established new kafka controller connection) controllerURI: %a", controllerURI)
+	a.log.Infof("(established new kafka controller connection) controllerURI: %s", controllerURI)
 
 	bankAccountAggregateTopic := es.GetKafkaAggregateTypeTopic(a.cfg.KafkaPublisherConfig, string(domain.BankAccountAggregateType))
 

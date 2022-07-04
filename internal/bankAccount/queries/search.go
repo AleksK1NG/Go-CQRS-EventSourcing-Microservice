@@ -17,7 +17,7 @@ type SearchQueryResult struct {
 }
 
 type SearchBankAccountsQuery struct {
-	QueryTerm  string            `json:"queryTerm"`
+	QueryTerm  string            `json:"queryTerm" validate:"required,gte=0"`
 	Pagination *utils.Pagination `json:"pagination"`
 }
 

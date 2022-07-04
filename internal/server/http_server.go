@@ -36,7 +36,7 @@ func (a *app) mapRoutes() {
 
 	//a.echo.GET("/swagger/*", echoSwagger.WrapHandler)
 
-	a.echo.Use(a.mw.RequestLoggerMiddleware)
+	a.echo.Use(a.middlewareManager.RequestLoggerMiddleware)
 	a.echo.Use(middleware.RecoverWithConfig(middleware.RecoverConfig{
 		StackSize:         stackSize,
 		DisablePrintStack: false,

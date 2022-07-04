@@ -12,7 +12,7 @@ func (a *app) runHealthCheck(ctx context.Context) {
 	health := healthcheck.NewHandler()
 
 	mux := http.NewServeMux()
-	a.ps = &http.Server{
+	a.probeServer = &http.Server{
 		Handler:      mux,
 		Addr:         a.cfg.Probes.Port,
 		WriteTimeout: writeTimeout,
@@ -25,8 +25,8 @@ func (a *app) runHealthCheck(ctx context.Context) {
 
 	go func() {
 		a.log.Infof("(%s) Kubernetes probes listening on port: %s", a.cfg.ServiceName, a.cfg.Probes.Port)
-		if err := a.ps.ListenAndServe(); err != nil {
-			a.log.Errorf("(ListenAndServe) err: {%v}", err)
+		if err := a.probeServer.ListenAndServe(); err != nil {
+			a.log.Errorf("(ListenAndServe) err: %v", err)
 		}
 	}()
 }
@@ -69,5 +69,5 @@ func (a *app) configureHealthCheckEndpoints(ctx context.Context, health healthch
 }
 
 func (a *app) shutDownHealthCheckServer(ctx context.Context) error {
-	return a.ps.Shutdown(ctx)
+	return a.probeServer.Shutdown(ctx)
 }
