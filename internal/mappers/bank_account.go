@@ -2,6 +2,8 @@ package mappers
 
 import (
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/internal/bankAccount/domain"
+	"github.com/AleksK1NG/go-cqrs-eventsourcing/internal/bankAccount/dto"
+	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/utils"
 	bankAccountService "github.com/AleksK1NG/go-cqrs-eventsourcing/proto/bank_account"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -65,6 +67,18 @@ func BankAccountMongoProjectionToProto(bankAccount *domain.BankAccountMongoProje
 	}
 }
 
+func BankAccountMongoProjectionToHttp(bankAccount *domain.BankAccountMongoProjection) *dto.HttpBankAccountResponse {
+	return &dto.HttpBankAccountResponse{
+		AggregateID: bankAccount.AggregateID,
+		Email:       bankAccount.Email,
+		Address:     bankAccount.Address,
+		FirstName:   bankAccount.FirstName,
+		LastName:    bankAccount.LastName,
+		Balance:     bankAccount.Balance,
+		Status:      bankAccount.Status,
+	}
+}
+
 func BankAccountElasticProjectionToProto(bankAccount *domain.ElasticSearchProjection) *bankAccountService.BankAccount {
 	return &bankAccountService.BankAccount{
 		Id:        bankAccount.AggregateID,
@@ -79,10 +93,37 @@ func BankAccountElasticProjectionToProto(bankAccount *domain.ElasticSearchProjec
 	}
 }
 
+func BankAccountElasticProjectionToHttp(bankAccount *domain.ElasticSearchProjection) *dto.HttpBankAccountResponse {
+	return &dto.HttpBankAccountResponse{
+		AggregateID: bankAccount.AggregateID,
+		Email:       bankAccount.Email,
+		Address:     bankAccount.Address,
+		FirstName:   bankAccount.FirstName,
+		LastName:    bankAccount.LastName,
+		Balance:     bankAccount.Balance,
+		Status:      bankAccount.Status,
+	}
+}
+
 func SearchBankAccountsListToProto(list []*domain.ElasticSearchProjection) []*bankAccountService.BankAccount {
 	result := make([]*bankAccountService.BankAccount, 0, len(list))
 	for _, projection := range list {
 		result = append(result, BankAccountElasticProjectionToProto(projection))
 	}
 	return result
+}
+
+func SearchBankAccountsListToHttp(list []*domain.ElasticSearchProjection) []*dto.HttpBankAccountResponse {
+	result := make([]*dto.HttpBankAccountResponse, 0, len(list))
+	for _, projection := range list {
+		result = append(result, BankAccountElasticProjectionToHttp(projection))
+	}
+	return result
+}
+
+func SearchResultToHttp(list []*domain.ElasticSearchProjection, paginationResponse *utils.PaginationResponse) *dto.HttpSearchResponse {
+	return &dto.HttpSearchResponse{
+		List:               SearchBankAccountsListToHttp(list),
+		PaginationResponse: paginationResponse,
+	}
 }
