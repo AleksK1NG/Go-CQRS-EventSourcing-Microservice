@@ -76,3 +76,8 @@ elasticSearch:
   apiKey: ""
 elasticIndexes:
   bankAccounts: accounts
+migrations:
+  enable: true
+  recreate: false
+  sourceURL: "file://migrations"
+  dbURL: "postgres://postgres:postgres@localhost:5432/bank_accounts?sslmode=disable"
