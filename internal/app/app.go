@@ -140,7 +140,7 @@ func (a *app) Run() error {
 
 	a.bankAccountService = service.NewBankAccountService(a.log, eventStore, mongoRepository, elasticSearchRepository)
 
-	v1.NewBankAccountHandlers(a.echo.Group(a.cfg.Http.BasePath), a.middlewareManager, a.log, &a.cfg, a.bankAccountService, a.validate, a.metrics).MapRoutes()
+	v1.NewBankAccountHandlers(a.echo.Group(a.cfg.Http.BankAccountsPath), a.middlewareManager, a.log, &a.cfg, a.bankAccountService, a.validate, a.metrics).MapRoutes()
 
 	mongoSubscription := bankAccountMongoSubscription.NewBankAccountMongoSubscription(
 		a.log,

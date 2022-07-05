@@ -19,6 +19,10 @@ type PaginationResponse struct {
 	HasMore    bool  `json:"hasMore"`
 }
 
+func (p *PaginationResponse) String() string {
+	return fmt.Sprintf("TotalCount: %d, TotalPages: %d, Page: %d, Size: %d, HasMore: %v", p.TotalCount, p.TotalPages, p.Page, p.Size, p.HasMore)
+}
+
 func NewPaginationResponse(totalCount int64, pq *Pagination) *PaginationResponse {
 	return &PaginationResponse{
 		TotalCount: totalCount,

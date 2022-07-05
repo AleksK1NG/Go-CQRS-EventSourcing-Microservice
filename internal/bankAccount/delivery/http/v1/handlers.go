@@ -5,6 +5,7 @@ import (
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/internal/bankAccount/commands"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/internal/bankAccount/queries"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/internal/bankAccount/service"
+	"github.com/AleksK1NG/go-cqrs-eventsourcing/internal/mappers"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/internal/metrics"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/constants"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/httpErrors"
@@ -61,12 +62,14 @@ func (h *bankAccountHandlers) CreateBankAccount() echo.HandlerFunc {
 			return httpErrors.ErrorCtxResponse(c, err, h.cfg.Http.DebugErrorsResponse)
 		}
 
+		id := uuid.NewV4().String()
+		command.AggregateID = id
+
 		if err := h.validate.StructCtx(ctx, command); err != nil {
 			h.log.Errorf("(validate) err: %v", tracing.TraceWithErr(span, err))
 			return httpErrors.ErrorCtxResponse(c, err, h.cfg.Http.DebugErrorsResponse)
 		}
 
-		id := uuid.NewV4().String()
 		err := h.bankAccountService.Commands.CreateBankAccount.Handle(ctx, command)
 		if err != nil {
 			h.log.Errorf("(CreateBankAccount.Handle) id: %s, err: %v", id, tracing.TraceWithErr(span, err))
@@ -201,7 +204,7 @@ func (h *bankAccountHandlers) GetByID() echo.HandlerFunc {
 		}
 
 		h.log.Infof("(get bank account) id: %s", bankAccountProjection.AggregateID)
-		return c.JSON(http.StatusOK, bankAccountProjection)
+		return c.JSON(http.StatusOK, mappers.BankAccountMongoProjectionToHttp(bankAccountProjection))
 	}
 }
 
@@ -230,8 +233,9 @@ func (h *bankAccountHandlers) Search() echo.HandlerFunc {
 			h.log.Errorf("(SearchBankAccounts.Handle) id: %s, err: %v", query.QueryTerm, tracing.TraceWithErr(span, err))
 			return httpErrors.ErrorCtxResponse(c, err, h.cfg.Http.DebugErrorsResponse)
 		}
+		response := mappers.SearchResultToHttp(searchResult.List, searchResult.PaginationResponse)
 
-		h.log.Infof("(search) result: %+v", searchResult)
-		return c.JSON(http.StatusOK, searchResult)
+		h.log.Infof("(search) result: %+v", response)
+		return c.JSON(http.StatusOK, response)
 	}
 }

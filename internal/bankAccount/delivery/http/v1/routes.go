@@ -6,6 +6,6 @@ func (h *bankAccountHandlers) MapRoutes() {
 	h.group.PUT("/withdraw/:id", h.WithdrawBalance())
 	h.group.PUT("/email/:id", h.ChangeEmail())
 
-	h.group.GET("/accounts/:id", h.GetByID())
+	h.group.GET("/:id", h.GetByID())
 	h.group.GET("/search", h.Search())
 }
