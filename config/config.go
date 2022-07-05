@@ -8,6 +8,7 @@ import (
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/es"
 	kafkaClient "github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/kafka"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/logger"
+	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/migrations"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/mongodb"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/postgres"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/probes"
@@ -42,6 +43,7 @@ type Config struct {
 	Http                 Http                    `mapstructure:"http"`
 	Probes               probes.Config           `mapstructure:"probes"`
 	ElasticSearch        elastic.Config          `mapstructure:"elasticSearch" validate:"required"`
+	MigrationsConfig     migrations.Config       `mapstructure:"migrations" validate:"required"`
 }
 
 type GRPC struct {
