@@ -1,4 +1,4 @@
-package server
+package app
 
 import (
 	"context"
@@ -140,7 +140,7 @@ func (a *app) Run() error {
 
 	a.bankAccountService = service.NewBankAccountService(a.log, eventStore, mongoRepository, elasticSearchRepository)
 
-	v1.NewBankAccountHandlers(a.echo.Group(a.cfg.Http.BasePath), a.middlewareManager, a.log, &a.cfg, a.bankAccountService, a.validate).MapRoutes()
+	v1.NewBankAccountHandlers(a.echo.Group(a.cfg.Http.BasePath), a.middlewareManager, a.log, &a.cfg, a.bankAccountService, a.validate, a.metrics).MapRoutes()
 
 	mongoSubscription := bankAccountMongoSubscription.NewBankAccountMongoSubscription(
 		a.log,

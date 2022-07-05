@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/config"
-	"github.com/AleksK1NG/go-cqrs-eventsourcing/internal/server"
+	"github.com/AleksK1NG/go-cqrs-eventsourcing/internal/app"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/logger"
 	"log"
 )
@@ -20,7 +20,7 @@ func main() {
 
 	appLogger := logger.NewAppLogger(cfg.Logger.LogLevel, cfg.Logger.DevMode, cfg.Logger.Encoder)
 	appLogger.InitLogger()
-	appLogger.Named(server.GetMicroserviceName(*cfg))
+	appLogger.Named(app.GetMicroserviceName(*cfg))
 	appLogger.Infof("CFG: %+v", cfg)
-	appLogger.Fatal(server.NewApp(appLogger, *cfg).Run())
+	appLogger.Fatal(app.NewApp(appLogger, *cfg).Run())
 }

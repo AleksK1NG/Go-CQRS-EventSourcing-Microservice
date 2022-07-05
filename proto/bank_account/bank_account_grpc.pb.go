@@ -94,7 +94,7 @@ func (c *bankAccountServiceClient) SearchBankAccounts(ctx context.Context, in *S
 	return out, nil
 }
 
-// BankAccountServiceServer is the server API for BankAccountService service.
+// BankAccountServiceServer is the app API for BankAccountService service.
 // All implementations should embed UnimplementedBankAccountServiceServer
 // for forward compatibility
 type BankAccountServiceServer interface {
