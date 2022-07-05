@@ -5,6 +5,7 @@ import (
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/internal/bankAccount/commands"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/internal/bankAccount/queries"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/internal/bankAccount/service"
+	"github.com/AleksK1NG/go-cqrs-eventsourcing/internal/metrics"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/constants"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/httpErrors"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/logger"
@@ -25,6 +26,7 @@ type bankAccountHandlers struct {
 	cfg                *config.Config
 	bankAccountService *service.BankAccountService
 	validate           *validator.Validate
+	metrics            *metrics.ESMicroserviceMetrics
 }
 
 func NewBankAccountHandlers(
@@ -34,6 +36,7 @@ func NewBankAccountHandlers(
 	cfg *config.Config,
 	bankAccountService *service.BankAccountService,
 	validate *validator.Validate,
+	metrics *metrics.ESMicroserviceMetrics,
 ) *bankAccountHandlers {
 	return &bankAccountHandlers{
 		group:              group,
@@ -42,6 +45,7 @@ func NewBankAccountHandlers(
 		cfg:                cfg,
 		bankAccountService: bankAccountService,
 		validate:           validate,
+		metrics:            metrics,
 	}
 }
 
@@ -49,7 +53,7 @@ func (h *bankAccountHandlers) CreateBankAccount() echo.HandlerFunc {
 	return func(c echo.Context) error {
 		ctx, span := tracing.StartHttpServerTracerSpan(c, "bankAccountHandlers.CreateBankAccount")
 		defer span.Finish()
-		//h.metrics.CreateOrderHttpRequests.Inc()
+		h.metrics.HttpCreateBankAccountRequests.Inc()
 
 		var command commands.CreateBankAccountCommand
 		if err := c.Bind(&command); err != nil {
@@ -78,7 +82,7 @@ func (h *bankAccountHandlers) DepositBalance() echo.HandlerFunc {
 	return func(c echo.Context) error {
 		ctx, span := tracing.StartHttpServerTracerSpan(c, "bankAccountHandlers.DepositBalance")
 		defer span.Finish()
-		//h.metrics.CreateOrderHttpRequests.Inc()
+		h.metrics.HttpDepositBalanceRequests.Inc()
 
 		var command commands.DepositBalanceCommand
 		if err := c.Bind(&command); err != nil {
@@ -107,7 +111,7 @@ func (h *bankAccountHandlers) WithdrawBalance() echo.HandlerFunc {
 	return func(c echo.Context) error {
 		ctx, span := tracing.StartHttpServerTracerSpan(c, "bankAccountHandlers.WithdrawBalance")
 		defer span.Finish()
-		//h.metrics.CreateOrderHttpRequests.Inc()
+		h.metrics.HttpWithdrawBalanceRequests.Inc()
 
 		var command commands.WithdrawBalanceCommand
 		if err := c.Bind(&command); err != nil {
@@ -136,7 +140,7 @@ func (h *bankAccountHandlers) ChangeEmail() echo.HandlerFunc {
 	return func(c echo.Context) error {
 		ctx, span := tracing.StartHttpServerTracerSpan(c, "bankAccountHandlers.WithdrawBalance")
 		defer span.Finish()
-		//h.metrics.CreateOrderHttpRequests.Inc()
+		h.metrics.HttpChangeEmailRequests.Inc()
 
 		var command commands.ChangeEmailCommand
 		if err := c.Bind(&command); err != nil {
@@ -165,7 +169,7 @@ func (h *bankAccountHandlers) GetByID() echo.HandlerFunc {
 	return func(c echo.Context) error {
 		ctx, span := tracing.StartHttpServerTracerSpan(c, "bankAccountHandlers.GetByID")
 		defer span.Finish()
-		//h.metrics.CreateOrderHttpRequests.Inc()
+		h.metrics.HttpGetBuIdRequests.Inc()
 
 		var query queries.GetBankAccountByIDQuery
 		if err := c.Bind(&query); err != nil {
@@ -205,7 +209,7 @@ func (h *bankAccountHandlers) Search() echo.HandlerFunc {
 	return func(c echo.Context) error {
 		ctx, span := tracing.StartHttpServerTracerSpan(c, "bankAccountHandlers.Search")
 		defer span.Finish()
-		//h.metrics.CreateOrderHttpRequests.Inc()
+		h.metrics.HttpSearchRequests.Inc()
 
 		var query queries.SearchBankAccountsQuery
 		if err := c.Bind(&query); err != nil {

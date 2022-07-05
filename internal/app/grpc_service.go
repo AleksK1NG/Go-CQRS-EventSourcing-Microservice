@@ -1,7 +1,7 @@
-package server
+package app
 
 import (
-	bankAccountGrpcService "github.com/AleksK1NG/go-cqrs-eventsourcing/internal/bankAccount/delivery/grpc"
+	bankAccountGrpc "github.com/AleksK1NG/go-cqrs-eventsourcing/internal/bankAccount/delivery/grpc"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/constants"
 	bankAccountService "github.com/AleksK1NG/go-cqrs-eventsourcing/proto/bank_account"
 	"github.com/pkg/errors"
@@ -40,7 +40,7 @@ func (a *app) newBankAccountGrpcServer() (func() error, *grpc.Server, error) {
 		),
 	)
 
-	bankAccountGrpcService := bankAccountGrpcService.NewGrpcService(a.log, &a.cfg, a.bankAccountService, a.validate)
+	bankAccountGrpcService := bankAccountGrpc.NewGrpcService(a.log, &a.cfg, a.bankAccountService, a.validate, a.metrics)
 	bankAccountService.RegisterBankAccountServiceServer(grpcServer, bankAccountGrpcService)
 	grpc_prometheus.Register(grpcServer)
 
@@ -49,7 +49,7 @@ func (a *app) newBankAccountGrpcServer() (func() error, *grpc.Server, error) {
 	}
 
 	go func() {
-		a.log.Infof("(%a gRPC app is listening) on port: %a, app info: %+v", GetMicroserviceName(a.cfg), a.cfg.GRPC.Port, grpcServer.GetServiceInfo())
+		a.log.Infof("(%s gRPC app is listening) on port: %s, app info: %+v", GetMicroserviceName(a.cfg), a.cfg.GRPC.Port, grpcServer.GetServiceInfo())
 		a.log.Errorf("(newAssignmentGrpcServer) err: %v", grpcServer.Serve(l))
 	}()
 

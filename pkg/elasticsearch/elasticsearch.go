@@ -26,7 +26,7 @@ func NewElasticClient(cfg Config) (*v7.Client, error) {
 		return nil, err
 	}
 
-	// Ping the Elasticsearch server to get e.g. the version number
+	// Ping the Elasticsearch app to get e.g. the version number
 	info, code, err := client.Ping(cfg.URL).Do(ctx)
 	if err != nil {
 		return nil, err

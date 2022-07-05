@@ -7,6 +7,7 @@ import (
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/internal/bankAccount/queries"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/internal/bankAccount/service"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/internal/mappers"
+	"github.com/AleksK1NG/go-cqrs-eventsourcing/internal/metrics"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/grpc_errors"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/logger"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/tracing"
@@ -22,6 +23,7 @@ type grpcService struct {
 	cfg                *config.Config
 	bankAccountService *service.BankAccountService
 	validate           *validator.Validate
+	metrics            *metrics.ESMicroserviceMetrics
 }
 
 func NewGrpcService(
@@ -29,14 +31,16 @@ func NewGrpcService(
 	cfg *config.Config,
 	bankAccountService *service.BankAccountService,
 	validate *validator.Validate,
+	metrics *metrics.ESMicroserviceMetrics,
 ) *grpcService {
-	return &grpcService{log: log, cfg: cfg, bankAccountService: bankAccountService, validate: validate}
+	return &grpcService{log: log, cfg: cfg, bankAccountService: bankAccountService, validate: validate, metrics: metrics}
 }
 
 func (g *grpcService) CreateBankAccount(ctx context.Context, request *bankAccountService.CreateBankAccountRequest) (*bankAccountService.CreateBankAccountResponse, error) {
 	ctx, span := tracing.StartGrpcServerTracerSpan(ctx, "grpcService.CreateBankAccount")
 	defer span.Finish()
 	span.LogFields(log.String("req", request.String()))
+	g.metrics.GrpcCreateBankAccountRequests.Inc()
 
 	aggregateID := uuid.NewV4().String()
 	command := commands.CreateBankAccountCommand{
@@ -68,6 +72,7 @@ func (g *grpcService) DepositBalance(ctx context.Context, request *bankAccountSe
 	ctx, span := tracing.StartGrpcServerTracerSpan(ctx, "grpcService.DepositBalance")
 	defer span.Finish()
 	span.LogFields(log.String("req", request.String()))
+	g.metrics.GrpcDepositBalanceRequests.Inc()
 
 	command := commands.DepositBalanceCommand{
 		AggregateID: request.GetId(),
@@ -94,6 +99,7 @@ func (g *grpcService) WithdrawBalance(ctx context.Context, request *bankAccountS
 	ctx, span := tracing.StartGrpcServerTracerSpan(ctx, "grpcService.WithdrawBalance")
 	defer span.Finish()
 	span.LogFields(log.String("req", request.String()))
+	g.metrics.GrpcWithdrawBalanceRequests.Inc()
 
 	command := commands.WithdrawBalanceCommand{
 		AggregateID: request.GetId(),
@@ -120,6 +126,7 @@ func (g *grpcService) ChangeEmail(ctx context.Context, request *bankAccountServi
 	ctx, span := tracing.StartGrpcServerTracerSpan(ctx, "grpcService.ChangeEmail")
 	defer span.Finish()
 	span.LogFields(log.String("req", request.String()))
+	g.metrics.GrpcChangeEmailRequests.Inc()
 
 	command := commands.ChangeEmailCommand{AggregateID: request.GetId(), NewEmail: request.GetEmail()}
 
@@ -142,6 +149,7 @@ func (g *grpcService) GetById(ctx context.Context, request *bankAccountService.G
 	ctx, span := tracing.StartGrpcServerTracerSpan(ctx, "grpcService.GetById")
 	defer span.Finish()
 	span.LogFields(log.String("req", request.String()))
+	g.metrics.GrpcGetBuIdRequests.Inc()
 
 	query := queries.GetBankAccountByIDQuery{AggregateID: request.GetId(), FromEventStore: request.IsOwner}
 
@@ -164,6 +172,7 @@ func (g *grpcService) SearchBankAccounts(ctx context.Context, request *bankAccou
 	ctx, span := tracing.StartGrpcServerTracerSpan(ctx, "grpcService.SearchBankAccounts")
 	defer span.Finish()
 	span.LogFields(log.String("req", request.String()))
+	g.metrics.GrpcSearchRequests.Inc()
 
 	query := queries.SearchBankAccountsQuery{
 		QueryTerm: request.GetSearchText(),
