@@ -118,7 +118,6 @@ func InitConfig() (*Config, error) {
 	}
 	mongoURI := os.Getenv(constants.MongoDbURI)
 	if mongoURI != "" {
-		//cfg.Mongo.URI = "mongodb://host.docker.internal:27017"
 		cfg.Mongo.URI = mongoURI
 	}
 	jaegerAddr := os.Getenv(constants.JaegerHostPort)
@@ -129,6 +128,26 @@ func InitConfig() (*Config, error) {
 	elasticUrl := os.Getenv(constants.ElasticUrl)
 	if elasticUrl != "" {
 		cfg.ElasticSearch.Addresses = []string{elasticUrl}
+	}
+
+	postgresHost := os.Getenv(constants.PostgresqlHost)
+	if postgresHost != "" {
+		cfg.Postgresql.Host = postgresHost
+	}
+
+	postgresPort := os.Getenv(constants.PostgresqlPort)
+	if postgresPort != "" {
+		cfg.Postgresql.Port = postgresPort
+	}
+
+	dbUrl := os.Getenv(constants.MIGRATIONS_DB_URL)
+	if dbUrl != "" {
+		cfg.MigrationsConfig.DbURL = dbUrl
+	}
+
+	kafkaBrokers := os.Getenv(constants.KafkaBrokers)
+	if kafkaBrokers != "" {
+		cfg.Kafka.Brokers = []string{kafkaBrokers}
 	}
 
 	return cfg, nil

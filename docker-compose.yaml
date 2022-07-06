@@ -1,0 +1,184 @@
+version: "3.9"
+
+services:
+  es_microservice:
+    container_name: es_service
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5001:5001"
+      - "5007:5007"
+      - "3001:3001"
+      - "6001:6001"
+      - "8001:8001"
+    volumes:
+      - ./:/app
+    restart: always
+    environment:
+      - MONGO_URI=mongodb://host.docker.internal:27017
+      - JAEGER_HOST=host.docker.internal:6831
+      - ELASTIC_URL=http://host.docker.internal:9200
+      - POSTGRES_HOST=host.docker.internal
+      - POSTGRES_PORT=5432
+      - MIGRATIONS_DB_URL=postgres://postgres:postgres@host.docker.internal:5432/bank_accounts?sslmode=disable
+      - KAFKA_BROKERS=host.docker.internal:9092
+    depends_on:
+      - kafka
+      - es_postgesql
+      - prometheus
+      - node_exporter
+      - grafana
+      - jaeger
+      - mongodb
+      - node01
+      - kibana
+    networks: [ "microservices" ]
+
+  es_postgesql:
+    image: postgres:14.4
+    container_name: es_postgesql
+    expose:
+      - "5432"
+    ports:
+      - "5432:5432"
+    restart: always
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=bank_accounts
+      - POSTGRES_HOST=5432
+    command: -p 5432
+    volumes:
+      - ./microservices_pgdata:/var/lib/postgresql/data
+    networks: [ "microservices" ]
+
+  zookeeper:
+    image: 'bitnami/zookeeper:3.8.0'
+    ports:
+      - '2181:2181'
+    environment:
+      - ALLOW_ANONYMOUS_LOGIN=yes
+    volumes:
+      - "./zookeeper:/zookeeper"
+    networks: [ "microservices" ]
+
+  kafka:
+    image: 'bitnami/kafka:3.2.0'
+    ports:
+      - "9092:9092"
+      - "9093:9093"
+    volumes:
+      - "./kafka_data:/bitnami"
+    environment:
+      - KAFKA_BROKER_ID=1
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://127.0.0.1:9092
+      - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper:2181
+      - ALLOW_PLAINTEXT_LISTENER=yes
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CLIENT:PLAINTEXT,EXTERNAL:PLAINTEXT
+      - KAFKA_CFG_LISTENERS=CLIENT://:9092,EXTERNAL://:9093
+      - KAFKA_CFG_ADVERTISED_LISTENERS=CLIENT://kafka:9092,EXTERNAL://localhost:9093
+      - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=CLIENT
+    depends_on:
+      - zookeeper
+    networks: [ "microservices" ]
+
+  mongodb:
+    image: mongo:latest
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin
+      MONGODB_DATABASE: products
+    ports:
+      - "27017:27017"
+    volumes:
+      - ./mongodb_data_container:/data/db
+    networks: [ "microservices" ]
+
+  jaeger:
+    container_name: jaeger_container
+    restart: always
+    image: jaegertracing/all-in-one:1.35
+    environment:
+      - COLLECTOR_ZIPKIN_HTTP_PORT=9411
+    ports:
+      - "5775:5775/udp"
+      - "6831:6831/udp"
+      - "6832:6832/udp"
+      - "5778:5778"
+      - "16686:16686"
+      - "14268:14268"
+      - "14250:14250"
+      - "9411:9411"
+    networks: [ "microservices" ]
+
+  node01:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.2.3
+    container_name: node01
+    restart: always
+    environment:
+      - node.name=node01
+      - cluster.name=es-cluster-8
+      - discovery.type=single-node
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - xpack.license.self_generated.type=basic
+      - xpack.security.enabled=false
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - ./es-data01:/usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    networks: [ "microservices" ]
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.2.3
+    restart: always
+    environment:
+      ELASTICSEARCH_HOSTS: http://node01:9200
+    ports:
+      - "5601:5601"
+    depends_on:
+      - node01
+    networks: [ "microservices" ]
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    networks: [ "microservices" ]
+
+  node_exporter:
+    container_name: node_exporter_container
+    restart: always
+    image: prom/node-exporter
+    ports:
+      - '9101:9100'
+    networks: [ "microservices" ]
+
+  grafana:
+    container_name: grafana_container
+    restart: always
+    image: grafana/grafana
+    ports:
+      - '3005:3000'
+    networks: [ "microservices" ]
+
+volumes:
+  mongodb_data_container:
+  es-data01:
+    driver: local
+
+networks:
+  microservices:
+    name: microservices
