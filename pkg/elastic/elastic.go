@@ -12,19 +12,26 @@ type Config struct {
 	Username  string   `mapstructure:"username"`
 	Password  string   `mapstructure:"password"`
 
-	APIKey string      `mapstructure:"apiKey"`
-	Header http.Header // Global HTTP request header.
+	APIKey        string      `mapstructure:"apiKey"`
+	Header        http.Header // Global HTTP request header.
+	EnableLogging bool        `mapstructure:"enableLogging"`
 }
 
 func NewElasticSearchClient(cfg Config) (*elasticsearch.Client, error) {
-	client, err := elasticsearch.NewClient(elasticsearch.Config{
+
+	config := elasticsearch.Config{
 		Addresses: cfg.Addresses,
-		Logger:    &elastictransport.ColorLogger{Output: os.Stdout, EnableRequestBody: true, EnableResponseBody: true},
 		Username:  cfg.Username,
 		Password:  cfg.Password,
 		APIKey:    cfg.APIKey,
 		Header:    cfg.Header,
-	})
+	}
+
+	if cfg.EnableLogging {
+		config.Logger = &elastictransport.ColorLogger{Output: os.Stdout, EnableRequestBody: true, EnableResponseBody: true}
+	}
+
+	client, err := elasticsearch.NewClient(config)
 	if err != nil {
 		return nil, err
 	}

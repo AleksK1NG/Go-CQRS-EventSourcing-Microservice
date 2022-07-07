@@ -1,15 +1,11 @@
 .PHONY:
 
-run_es:
+run_microservice:
 	go run cmd/main.go -config=./config/config.yaml
 
 
 # ==============================================================================
 # Docker
-
-dev:
-	@echo Starting dev docker compose
-	docker-compose -f docker-compose.yaml up -d --build
 
 local:
 	@echo Clearing kafka data
@@ -101,17 +97,6 @@ proto_bank_account:
 	@echo Generating es microservice bank_account gRPC proto
 	cd proto/bank_account && protoc --go_out=. --go-grpc_opt=require_unimplemented_servers=false --go-grpc_out=. bank_account.proto
 
-# ==============================================================================
-# Swagger
-
-swagger:
-	@echo Starting swagger generating
-	swag init --parseDependency --parseInternal -g **/**/*.go
-
-
-#docker run --name esdb-node -it -p 2113:2113 -p 1113:1113 \
-#    ghcr.io/eventstore/eventstore:20.6.1-alpha.0.69-arm64v8 --insecure --run-projections=All \
-#    --enable-external-tcp --enable-atom-pub-over-http
 
 # ==============================================================================
 # Go migrate eduterm-pgql https://github.com/golang-migrate/migrate
