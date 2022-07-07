@@ -164,7 +164,7 @@ func (g *grpcService) GetById(ctx context.Context, request *bankAccountService.G
 		return nil, grpc_errors.ErrResponse(tracing.TraceWithErr(span, err))
 	}
 
-	g.log.Infof("(grpcService) [get account by id] projection: %#+v", bankAccountProjection)
+	g.log.Infof("(grpcService) [get account by id] projection: %+v", bankAccountProjection)
 	return &bankAccountService.GetByIdResponse{BankAccount: mappers.BankAccountMongoProjectionToProto(bankAccountProjection)}, nil
 }
 
@@ -193,7 +193,7 @@ func (g *grpcService) SearchBankAccounts(ctx context.Context, request *bankAccou
 		return nil, grpc_errors.ErrResponse(tracing.TraceWithErr(span, err))
 	}
 
-	g.log.Infof("(grpcService) [search] result: %#v", searchQueryResult.PaginationResponse)
+	g.log.Infof("(grpcService) [search] result: %+vv", searchQueryResult.PaginationResponse)
 	return &bankAccountService.SearchBankAccountsResponse{
 		BankAccounts: mappers.SearchBankAccountsListToProto(searchQueryResult.List),
 		Pagination:   mappers.PaginationResponseToProto(searchQueryResult.PaginationResponse),

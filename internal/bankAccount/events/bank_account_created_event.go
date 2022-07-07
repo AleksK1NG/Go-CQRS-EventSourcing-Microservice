@@ -18,14 +18,3 @@ type BankAccountCreatedEventV1 struct {
 	Status    string       `json:"status"`
 	Metadata  []byte       `json:"-"`
 }
-
-func NewBankAccountCreatedEventV1(email, address, firstName, lastName, status string, amount int64) *BankAccountCreatedEventV1 {
-	return &BankAccountCreatedEventV1{
-		Email:     email,
-		Address:   address,
-		FirstName: firstName,
-		LastName:  lastName,
-		Balance:   money.New(amount, money.USD),
-		Status:    status,
-	}
-}

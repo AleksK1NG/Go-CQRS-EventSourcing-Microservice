@@ -15,7 +15,6 @@ require (
 	github.com/jackc/pgx/v4 v4.16.1
 	github.com/json-iterator/go v1.1.12
 	github.com/labstack/echo/v4 v4.7.2
-	github.com/olivere/elastic/v7 v7.0.32
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.12.1
@@ -52,13 +51,11 @@ require (
 	github.com/jackc/pgservicefile v0.0.0-20200714003250-2b9c44734f2b // indirect
 	github.com/jackc/pgtype v1.11.0 // indirect
 	github.com/jackc/puddle v1.2.1 // indirect
-	github.com/josharian/intern v1.0.0 // indirect
 	github.com/klauspost/compress v1.14.2 // indirect
 	github.com/labstack/gommon v0.3.1 // indirect
 	github.com/leodido/go-urn v1.2.1 // indirect
 	github.com/lib/pq v1.10.2 // indirect
 	github.com/magiconair/properties v1.8.6 // indirect
-	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-colorable v0.1.12 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369 // indirect

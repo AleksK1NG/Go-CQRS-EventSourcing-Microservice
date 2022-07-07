@@ -5,6 +5,11 @@ import (
 	"context"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/es/serializer"
 	"github.com/elastic/go-elasticsearch/v8/esapi"
+	"github.com/pkg/errors"
+)
+
+var (
+	ErrMultiMatchSearchPrefix = errors.New("MultiMatchSearchPrefix response error")
 )
 
 type MultiMatch struct {
@@ -38,17 +43,8 @@ func SearchMultiMatchPrefix[T any](ctx context.Context, transport esapi.Transpor
 				Type:   "phrase_prefix",
 			}}}
 
-	//searchQuery["query"] = map[string]any{
-	//	"multi_match": map[string]any{
-	//		"fields": request.Fields,
-	//		"query":  request.Term,
-	//		"type":   "phrase_prefix",
-	//	},
-	//}
-
 	if request.SortMap != nil {
 		searchQuery["sort"] = []interface{}{"_score", request.SortMap}
-		//searchQuery["sort"] = []interface{}{"_score", map[string]interface{}{"age": "asc"}}
 	}
 
 	queryBytes, err := serializer.Marshal(&matchSearchQuery)
@@ -57,11 +53,10 @@ func SearchMultiMatchPrefix[T any](ctx context.Context, transport esapi.Transpor
 	}
 
 	searchRequest := esapi.SearchRequest{
-		Index: request.Index,
-		Body:  bytes.NewReader(queryBytes),
-		Size:  IntPointer(request.Size),
-		From:  IntPointer(request.From),
-		//Sort:   request.Sort,
+		Index:  request.Index,
+		Body:   bytes.NewReader(queryBytes),
+		Size:   IntPointer(request.Size),
+		From:   IntPointer(request.From),
 		Pretty: true,
 	}
 
@@ -74,6 +69,10 @@ func SearchMultiMatchPrefix[T any](ctx context.Context, transport esapi.Transpor
 		return nil, err
 	}
 	defer response.Body.Close()
+
+	if response.IsError() {
+		return nil, errors.Wrapf(ErrMultiMatchSearchPrefix, "err: %s", response.String())
+	}
 
 	hits := EsHits[T]{}
 	err = serializer.NewDecoder(response.Body).Decode(&hits)
