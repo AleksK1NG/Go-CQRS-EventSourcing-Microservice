@@ -107,7 +107,7 @@ func (b *bankAccountMongoRepository) UpdateConcurrently(ctx context.Context, agg
 		}
 
 		b.log.Infof("[UpdateConcurrently] result AggregateID: %s, expectedVersion: %d", foundProjection.AggregateID, expectedVersion)
-		return nil
+		return session.CommitTransaction(ctx)
 	})
 	if err != nil {
 		if err := session.AbortTransaction(ctx); err != nil {

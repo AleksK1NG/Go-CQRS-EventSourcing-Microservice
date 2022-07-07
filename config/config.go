@@ -27,7 +27,7 @@ func init() {
 
 type Config struct {
 	ServiceName          string                  `mapstructure:"serviceName"`
-	Logger               logger.Config           `mapstructure:"logger"`
+	Logger               logger.LogConfig        `mapstructure:"logger"`
 	GRPC                 GRPC                    `mapstructure:"grpc"`
 	Postgresql           postgres.Config         `mapstructure:"postgres"`
 	Timeouts             Timeouts                `mapstructure:"timeouts" validate:"required"`
