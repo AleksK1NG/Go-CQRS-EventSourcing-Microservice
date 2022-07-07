@@ -74,6 +74,7 @@ elasticSearch:
   username: ""
   password: ""
   apiKey: ""
+  enableLogging: false
 elasticIndexes:
   bankAccounts: accounts
 migrations:

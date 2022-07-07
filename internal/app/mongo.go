@@ -49,7 +49,9 @@ func (a *app) initMongoDBCollections(ctx context.Context) {
 	}
 	a.log.Infof("(CreatedIndex) emailIndex: %s", emailIndex)
 
-	list, err := a.mongoClient.Database(a.cfg.Mongo.Db).Collection(a.cfg.MongoCollections.BankAccounts).Indexes().List(ctx)
+	list, err := a.mongoClient.Database(a.cfg.Mongo.Db).Collection(a.cfg.MongoCollections.BankAccounts).
+		Indexes().
+		List(ctx)
 	if err != nil {
 		a.log.Warnf("(initMongoDBCollections) [List] err: %v", err)
 	}
