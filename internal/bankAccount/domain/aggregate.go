@@ -128,7 +128,7 @@ func (a *BankAccountAggregate) WithdrawBalance(ctx context.Context, amount int64
 	}
 
 	if balance.IsNegative() {
-		return errors.Wrapf(bankAccountErrors.ErrNotEnoughtBalance, "amount: %d", amount)
+		return errors.Wrapf(bankAccountErrors.ErrNotEnoughBalance, "amount: %d", amount)
 	}
 
 	metaDataBytes, err := serializer.Marshal(tracing.ExtractTextMapCarrier(span.Context()))

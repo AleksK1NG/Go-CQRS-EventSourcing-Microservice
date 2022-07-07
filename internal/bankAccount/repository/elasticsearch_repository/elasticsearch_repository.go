@@ -6,6 +6,7 @@ import (
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/internal/bankAccount/domain"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/esclient"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/logger"
+	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/tracing"
 	"github.com/elastic/go-elasticsearch/v8"
 	"github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/log"
@@ -31,12 +32,12 @@ func (e *elasticRepo) Index(ctx context.Context, projection *domain.ElasticSearc
 
 	response, err := esclient.Index(ctx, e.client, e.cfg.ElasticIndexes.BankAccounts, projection.AggregateID, projection)
 	if err != nil {
-		return errors.Wrapf(err, "esclient.Index id: %s", projection.AggregateID)
+		return tracing.TraceWithErr(span, errors.Wrapf(err, "esclient.Index id: %s", projection.AggregateID))
 	}
 	defer response.Body.Close()
 
 	if response.IsError() {
-		return errors.Wrapf(errors.New("ElasticSearch request err"), "response.IsError id: %s", projection.AggregateID)
+		return tracing.TraceWithErr(span, errors.Wrapf(errors.New("ElasticSearch request err"), "response.IsError id: %s", projection.AggregateID))
 	}
 	if response.HasWarnings() {
 		e.log.Warnf("ElasticSearch Index warnings: %+v", response.Warnings())
@@ -55,12 +56,12 @@ func (e *elasticRepo) Update(ctx context.Context, projection *domain.ElasticSear
 
 	response, err := esclient.Update(ctx, e.client, e.cfg.ElasticIndexes.BankAccounts, projection.AggregateID, projection)
 	if err != nil {
-		return errors.Wrapf(err, "esclient.Update id: %s", projection.AggregateID)
+		return tracing.TraceWithErr(span, errors.Wrapf(err, "esclient.Update id: %s", projection.AggregateID))
 	}
 	defer response.Body.Close()
 
 	if response.IsError() {
-		return errors.Wrapf(errors.New("ElasticSearch request err"), "response.IsError id: %s", projection.AggregateID)
+		return tracing.TraceWithErr(span, errors.Wrapf(errors.New("ElasticSearch request err"), "response.IsError id: %s", projection.AggregateID))
 	}
 	if response.HasWarnings() {
 		e.log.Warnf("ElasticSearch Update warnings: %+v", response.Warnings())
@@ -77,12 +78,12 @@ func (e *elasticRepo) DeleteByAggregateID(ctx context.Context, aggregateID strin
 
 	response, err := esclient.Delete(ctx, e.client, e.cfg.ElasticIndexes.BankAccounts, aggregateID)
 	if err != nil {
-		return errors.Wrapf(err, "esclient.Delete id: %s", aggregateID)
+		return tracing.TraceWithErr(span, errors.Wrapf(err, "esclient.Delete id: %s", aggregateID))
 	}
 	defer response.Body.Close()
 
 	if response.IsError() && response.StatusCode != http.StatusNotFound {
-		return errors.Wrapf(errors.New("ElasticSearch delete"), "response.IsError aggregateID: %s, status: %s", aggregateID, response.Status())
+		return tracing.TraceWithErr(span, errors.Wrapf(errors.New("ElasticSearch delete"), "response.IsError aggregateID: %s, status: %s", aggregateID, response.Status()))
 	}
 	if response.HasWarnings() {
 		e.log.Warnf("ElasticSearch Delete warnings: %+v", response.Warnings())
@@ -99,7 +100,7 @@ func (e *elasticRepo) GetByAggregateID(ctx context.Context, aggregateID string) 
 
 	response, err := esclient.GetByID[*domain.ElasticSearchProjection](ctx, e.client, e.cfg.ElasticIndexes.BankAccounts, aggregateID)
 	if err != nil {
-		return nil, errors.Wrapf(err, "esclient.GetByID id: %s", aggregateID)
+		return nil, tracing.TraceWithErr(span, errors.Wrapf(err, "esclient.GetByID id: %s", aggregateID))
 	}
 
 	e.log.Infof("ElasticSearch delete result: %#v", response)
@@ -127,7 +128,7 @@ func (e *elasticRepo) Search(ctx context.Context, term string, options esclient.
 
 	response, err := esclient.SearchMultiMatchPrefix[*domain.ElasticSearchProjection](ctx, e.client, searchMatchPrefixRequest)
 	if err != nil {
-		return nil, errors.Wrapf(err, "esclient.SearchMultiMatchPrefix term: %s", term)
+		return nil, tracing.TraceWithErr(span, errors.Wrapf(err, "esclient.SearchMultiMatchPrefix term: %s", term))
 	}
 
 	return response, nil
