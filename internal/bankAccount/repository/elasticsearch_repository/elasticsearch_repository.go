@@ -38,6 +38,9 @@ func (e *elasticRepo) Index(ctx context.Context, projection *domain.ElasticSearc
 	if response.IsError() {
 		return errors.Wrapf(errors.New("ElasticSearch request err"), "response.IsError id: %s", projection.AggregateID)
 	}
+	if response.HasWarnings() {
+		e.log.Warnf("ElasticSearch Index warnings: %+v", response.Warnings())
+	}
 
 	e.log.Infof("ElasticSearch index result: %s", response.String())
 	return nil
@@ -59,6 +62,9 @@ func (e *elasticRepo) Update(ctx context.Context, projection *domain.ElasticSear
 	if response.IsError() {
 		return errors.Wrapf(errors.New("ElasticSearch request err"), "response.IsError id: %s", projection.AggregateID)
 	}
+	if response.HasWarnings() {
+		e.log.Warnf("ElasticSearch Update warnings: %+v", response.Warnings())
+	}
 
 	e.log.Infof("ElasticSearch update result: %s", response.String())
 	return nil
@@ -77,6 +83,9 @@ func (e *elasticRepo) DeleteByAggregateID(ctx context.Context, aggregateID strin
 
 	if response.IsError() && response.StatusCode != http.StatusNotFound {
 		return errors.Wrapf(errors.New("ElasticSearch delete"), "response.IsError aggregateID: %s, status: %s", aggregateID, response.Status())
+	}
+	if response.HasWarnings() {
+		e.log.Warnf("ElasticSearch Delete warnings: %+v", response.Warnings())
 	}
 
 	e.log.Infof("ElasticSearch delete result: %s", response.String())

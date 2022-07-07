@@ -24,7 +24,6 @@ func SearchMatchPhrasePrefix[T any](ctx context.Context, transport esapi.Transpo
 
 	if request.SortMap != nil {
 		searchQuery["sort"] = []interface{}{"_score", request.SortMap}
-		//searchQuery["sort"] = []interface{}{"_score", map[string]interface{}{"age": "asc"}}
 	}
 
 	queryBytes, err := serializer.Marshal(searchQuery)

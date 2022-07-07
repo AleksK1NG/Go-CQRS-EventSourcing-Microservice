@@ -11,7 +11,3 @@ type BalanceDepositedEventV1 struct {
 	PaymentID string `json:"paymentID"`
 	Metadata  []byte `json:"-"`
 }
-
-func NewBalanceDepositedEventV1(amount int64, paymentID string) *BalanceDepositedEventV1 {
-	return &BalanceDepositedEventV1{Amount: amount, PaymentID: paymentID}
-}
