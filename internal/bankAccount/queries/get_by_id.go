@@ -47,7 +47,7 @@ func (q *getBankAccountByIDQuery) Handle(ctx context.Context, query GetBankAccou
 			return nil, tracing.TraceWithErr(span, errors.Wrapf(bankAccountErrors.ErrBankAccountNotFound, "id: %s", query.AggregateID))
 		}
 
-		q.log.Debugf("GetBankAccountByIDQuery from aggregateStore bankAccountAggregate: %#+v", bankAccountAggregate.BankAccount)
+		q.log.Debugf("(GetBankAccountByIDQuery) from aggregateStore bankAccountAggregate: %#+v", bankAccountAggregate.BankAccount)
 		return mappers.BankAccountToMongoProjection(bankAccountAggregate), nil
 	}
 
@@ -65,15 +65,15 @@ func (q *getBankAccountByIDQuery) Handle(ctx context.Context, query GetBankAccou
 			mongoProjection := mappers.BankAccountToMongoProjection(bankAccountAggregate)
 			err = q.mongoRepository.Upsert(ctx, mongoProjection)
 			if err != nil {
-				q.log.Errorf("GetBankAccountByIDQuery mongo Upsert AggregateID: %s, err: %v", query.AggregateID, tracing.TraceWithErr(span, err))
+				q.log.Errorf("(GetBankAccountByIDQuery) mongo Upsert AggregateID: %s, err: %v", query.AggregateID, tracing.TraceWithErr(span, err))
 			}
-			q.log.Debugf("GetBankAccountByIDQuery Upsert %+v", query)
+			q.log.Debugf("(GetBankAccountByIDQuery) Upsert %+v", query)
 			return mongoProjection, nil
 
 		}
 		return nil, tracing.TraceWithErr(span, err)
 	}
 
-	q.log.Debugf("GetBankAccountByIDQuery from mongo %+v", query)
+	q.log.Debugf("(GetBankAccountByIDQuery) from mongo %+v", query)
 	return projection, nil
 }

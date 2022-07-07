@@ -81,6 +81,7 @@ func (b *bankAccountMongoRepository) UpdateConcurrently(ctx context.Context, agg
 
 		filter := bson.M{constants.MongoAggregateID: aggregateID}
 		foundProjection := &domain.BankAccountMongoProjection{}
+
 		err := b.bankAccountsCollection().FindOne(ctx, filter).Decode(foundProjection)
 		if err != nil {
 			return tracing.TraceWithErr(span, errors.Wrapf(err, "[FindOne] aggregateID: %s, expectedVersion: %d", aggregateID, expectedVersion))
@@ -163,6 +164,7 @@ func (b *bankAccountMongoRepository) GetByAggregateID(ctx context.Context, aggre
 
 	filter := bson.M{constants.MongoAggregateID: aggregateID}
 	var projection domain.BankAccountMongoProjection
+
 	err := b.bankAccountsCollection().FindOne(ctx, filter).Decode(&projection)
 	if err != nil {
 		return nil, tracing.TraceWithErr(span, errors.Wrapf(err, "[FindOne] aggregateID: %s", projection.AggregateID))
