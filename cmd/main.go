@@ -18,7 +18,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	appLogger := logger.NewAppLogger(cfg.Logger.LogLevel, cfg.Logger.DevMode, cfg.Logger.Encoder)
+	appLogger := logger.NewAppLogger(cfg.Logger)
 	appLogger.InitLogger()
 	appLogger.Named(app.GetMicroserviceName(*cfg))
 	appLogger.Infof("CFG: %+v", cfg)

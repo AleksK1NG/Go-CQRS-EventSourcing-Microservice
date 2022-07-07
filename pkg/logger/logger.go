@@ -9,7 +9,7 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-type Config struct {
+type LogConfig struct {
 	LogLevel string `mapstructure:"level"`
 	DevMode  bool   `mapstructure:"devMode"`
 	Encoder  string `mapstructure:"encoder"`
@@ -56,8 +56,8 @@ type appLogger struct {
 }
 
 // NewAppLogger App Logger constructor
-func NewAppLogger(level string, devMode bool, encoding string) *appLogger {
-	return &appLogger{level: level, devMode: devMode, encoding: encoding}
+func NewAppLogger(cfg LogConfig) *appLogger {
+	return &appLogger{level: cfg.LogLevel, devMode: cfg.DevMode, encoding: cfg.Encoder}
 }
 
 // For mapping config logger to email_service logger levels
