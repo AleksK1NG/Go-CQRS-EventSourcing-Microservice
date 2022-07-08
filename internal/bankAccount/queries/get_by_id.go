@@ -39,16 +39,7 @@ func (q *getBankAccountByIDQuery) Handle(ctx context.Context, query GetBankAccou
 	span.LogFields(log.Object("query", query))
 
 	if query.FromEventStore {
-		bankAccountAggregate := domain.NewBankAccountAggregate(query.AggregateID)
-		if err := q.aggregateStore.Load(ctx, bankAccountAggregate); err != nil {
-			return nil, tracing.TraceWithErr(span, err)
-		}
-		if bankAccountAggregate.GetVersion() == 0 {
-			return nil, tracing.TraceWithErr(span, errors.Wrapf(bankAccountErrors.ErrBankAccountNotFound, "id: %s", query.AggregateID))
-		}
-
-		q.log.Debugf("(GetBankAccountByIDQuery) from aggregateStore bankAccountAggregate: %#+v", bankAccountAggregate.BankAccount)
-		return mappers.BankAccountToMongoProjection(bankAccountAggregate), nil
+		return q.loadFromAggregateStore(ctx, query)
 	}
 
 	projection, err := q.mongoRepository.GetByAggregateID(ctx, query.AggregateID)
@@ -76,4 +67,20 @@ func (q *getBankAccountByIDQuery) Handle(ctx context.Context, query GetBankAccou
 
 	q.log.Debugf("(GetBankAccountByIDQuery) from mongo %+v", query)
 	return projection, nil
+}
+
+func (q *getBankAccountByIDQuery) loadFromAggregateStore(ctx context.Context, query GetBankAccountByIDQuery) (*domain.BankAccountMongoProjection, error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, "getBankAccountByIDQuery.loadFromAggregateStore")
+	defer span.Finish()
+
+	bankAccountAggregate := domain.NewBankAccountAggregate(query.AggregateID)
+	if err := q.aggregateStore.Load(ctx, bankAccountAggregate); err != nil {
+		return nil, tracing.TraceWithErr(span, err)
+	}
+	if bankAccountAggregate.GetVersion() == 0 {
+		return nil, tracing.TraceWithErr(span, errors.Wrapf(bankAccountErrors.ErrBankAccountNotFound, "id: %s", query.AggregateID))
+	}
+
+	q.log.Debugf("(GetBankAccountByIDQuery) from aggregateStore bankAccountAggregate: %+v", bankAccountAggregate.BankAccount)
+	return mappers.BankAccountToMongoProjection(bankAccountAggregate), nil
 }
