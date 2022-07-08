@@ -103,7 +103,7 @@ func (e *elasticRepo) GetByAggregateID(ctx context.Context, aggregateID string) 
 		return nil, tracing.TraceWithErr(span, errors.Wrapf(err, "esclient.GetByID id: %s", aggregateID))
 	}
 
-	e.log.Infof("ElasticSearch delete result: %#v", response)
+	e.log.Infof("ElasticSearch delete result: %+v", response)
 	return response.Source, nil
 }
 
