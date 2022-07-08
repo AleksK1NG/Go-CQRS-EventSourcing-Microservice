@@ -28,7 +28,7 @@ func TestGrpcService_CreateBankAccount(t *testing.T) {
 
 	client, closeFunc, err := SetupTestBankAccountGrpcClient()
 	require.NoError(t, err)
-	defer closeFunc()
+	defer closeFunc() // nolint: errcheck
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
@@ -41,7 +41,7 @@ func TestGrpcService_CreateBankAccount(t *testing.T) {
 		Status:    "PREMUIM",
 		Balance:   int64(gofakeit.Number(0, 555555555)),
 	}
-	t.Logf("request: %+v", request)
+	t.Logf("request: %s", request.String())
 
 	response, err := client.CreateBankAccount(ctx, request)
 
@@ -72,7 +72,7 @@ func TestGrpcService_DepositBalance(t *testing.T) {
 
 	client, closeFunc, err := SetupTestBankAccountGrpcClient()
 	require.NoError(t, err)
-	defer closeFunc()
+	defer closeFunc() // nolint: errcheck
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
@@ -85,7 +85,7 @@ func TestGrpcService_DepositBalance(t *testing.T) {
 		Status:    "PREMUIM",
 		Balance:   int64(gofakeit.Number(0, 555555555)),
 	}
-	t.Logf("request: %+v", request)
+	t.Logf("request: %s", request.String())
 
 	response, err := client.CreateBankAccount(ctx, request)
 
@@ -109,7 +109,7 @@ func TestGrpcService_WithdrawBalance(t *testing.T) {
 
 	client, closeFunc, err := SetupTestBankAccountGrpcClient()
 	require.NoError(t, err)
-	defer closeFunc()
+	defer closeFunc() // nolint: errcheck
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
@@ -122,7 +122,7 @@ func TestGrpcService_WithdrawBalance(t *testing.T) {
 		Status:    "PREMUIM",
 		Balance:   int64(gofakeit.Number(0, 5000000)),
 	}
-	t.Logf("request: %+v", request)
+	t.Logf("request: %s", request.String())
 
 	response, err := client.CreateBankAccount(ctx, request)
 
@@ -146,7 +146,7 @@ func TestGrpcService_ChangeEmail(t *testing.T) {
 
 	client, closeFunc, err := SetupTestBankAccountGrpcClient()
 	require.NoError(t, err)
-	defer closeFunc()
+	defer closeFunc() // nolint: errcheck
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
@@ -159,7 +159,7 @@ func TestGrpcService_ChangeEmail(t *testing.T) {
 		Status:    "PREMUIM",
 		Balance:   int64(gofakeit.Number(0, 5000000)),
 	}
-	t.Logf("request: %+v", request)
+	t.Logf("request: %s", request.String())
 
 	response, err := client.CreateBankAccount(ctx, request)
 

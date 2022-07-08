@@ -5,9 +5,11 @@ go 1.18
 require (
 	github.com/Rhymond/go-money v1.0.7
 	github.com/avast/retry-go v3.0.0+incompatible
+	github.com/brianvoe/gofakeit/v6 v6.17.0
 	github.com/elastic/elastic-transport-go/v8 v8.1.0
 	github.com/elastic/go-elasticsearch/v8 v8.3.0
 	github.com/go-playground/validator v9.31.0+incompatible
+	github.com/go-resty/resty/v2 v2.7.0
 	github.com/golang-migrate/migrate/v4 v4.15.2
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
@@ -33,7 +35,6 @@ require (
 require (
 	github.com/HdrHistogram/hdrhistogram-go v1.1.2 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
-	github.com/brianvoe/gofakeit/v6 v6.17.0 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
