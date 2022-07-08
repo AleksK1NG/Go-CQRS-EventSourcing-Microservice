@@ -62,8 +62,7 @@ func (h *bankAccountHandlers) CreateBankAccount() echo.HandlerFunc {
 			return httpErrors.ErrorCtxResponse(c, err, h.cfg.Http.DebugErrorsResponse)
 		}
 
-		id := uuid.NewV4().String()
-		command.AggregateID = id
+		command.AggregateID = uuid.NewV4().String()
 
 		if err := h.validate.StructCtx(ctx, command); err != nil {
 			h.log.Errorf("(validate) err: %v", tracing.TraceWithErr(span, err))
@@ -72,12 +71,12 @@ func (h *bankAccountHandlers) CreateBankAccount() echo.HandlerFunc {
 
 		err := h.bankAccountService.Commands.CreateBankAccount.Handle(ctx, command)
 		if err != nil {
-			h.log.Errorf("(CreateBankAccount.Handle) id: %s, err: %v", id, tracing.TraceWithErr(span, err))
+			h.log.Errorf("(CreateBankAccount.Handle) id: %s, err: %v", command.AggregateID, tracing.TraceWithErr(span, err))
 			return httpErrors.ErrorCtxResponse(c, err, h.cfg.Http.DebugErrorsResponse)
 		}
 
-		h.log.Infof("(BankAccount created) id: %s", id)
-		return c.JSON(http.StatusCreated, id)
+		h.log.Infof("(BankAccount created) id: %s", command.AggregateID)
+		return c.JSON(http.StatusCreated, command.AggregateID)
 	}
 }
 
