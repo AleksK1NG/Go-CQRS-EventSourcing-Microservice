@@ -71,7 +71,7 @@ func (g *grpcService) CreateBankAccount(ctx context.Context, request *bankAccoun
 func (g *grpcService) DepositBalance(ctx context.Context, request *bankAccountService.DepositBalanceRequest) (*bankAccountService.DepositBalanceResponse, error) {
 	ctx, span := tracing.StartGrpcServerTracerSpan(ctx, "grpcService.DepositBalance")
 	defer span.Finish()
-	span.LogFields(log.String("req", request.String()))
+	span.LogFields(log.String("request", request.String()))
 	g.metrics.GrpcDepositBalanceRequests.Inc()
 
 	command := commands.DepositBalanceCommand{

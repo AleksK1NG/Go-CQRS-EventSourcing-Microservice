@@ -3,12 +3,12 @@ package commands
 import (
 	"context"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/internal/bankAccount/domain"
+	bankAccountErrors "github.com/AleksK1NG/go-cqrs-eventsourcing/internal/bankAccount/errors"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/es"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/logger"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/tracing"
 	"github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/log"
-	"github.com/pkg/errors"
 )
 
 type CreateBankAccountCommand struct {
@@ -44,7 +44,7 @@ func (c *createBankAccountCmdHandler) Handle(ctx context.Context, cmd CreateBank
 		return tracing.TraceWithErr(span, err)
 	}
 	if exists {
-		return tracing.TraceWithErr(span, errors.New("already exists"))
+		return tracing.TraceWithErr(span, bankAccountErrors.ErrBankAccountAlreadyExists)
 	}
 
 	bankAccountAggregate := domain.NewBankAccountAggregate(cmd.AggregateID)

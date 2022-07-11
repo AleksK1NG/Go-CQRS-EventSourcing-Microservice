@@ -153,7 +153,7 @@ func (b *bankAccountMongoRepository) DeleteByAggregateID(ctx context.Context, ag
 		return tracing.TraceWithErr(span, errors.Wrapf(err, "DeleteByAggregateID [FindOneAndDelete] aggregateID: %s", aggregateID))
 	}
 
-	b.log.Debugf("[DeleteByAggregateID] result AggregateID: %s, deleteCount: %d", aggregateID, result.DeletedCount)
+	b.log.Debugf("[DeleteByAggregateID] result AggregateID: %s, deletedCount: %d", aggregateID, result.DeletedCount)
 	return nil
 }
 

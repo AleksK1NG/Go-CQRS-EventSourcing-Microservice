@@ -2,7 +2,6 @@ package es
 
 import (
 	"context"
-	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/tracing"
 	"github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/log"
 	"github.com/pkg/errors"
@@ -16,12 +15,12 @@ func (p *pgEventStore) SaveSnapshot(ctx context.Context, aggregate Aggregate) er
 
 	snapshot, err := NewSnapshotFromAggregate(aggregate)
 	if err != nil {
-		return tracing.TraceWithErr(span, errors.Wrap(err, "NewSnapshotFromAggregate"))
+		return errors.Wrap(err, "NewSnapshotFromAggregate")
 	}
 
 	_, err = p.db.Exec(ctx, saveSnapshotQuery, snapshot.ID, snapshot.Type, snapshot.State, snapshot.Version)
 	if err != nil {
-		return tracing.TraceWithErr(span, errors.Wrap(err, "db.Exec"))
+		return errors.Wrap(err, "db.Exec")
 	}
 
 	p.log.Debugf("(SaveSnapshot) snapshot: %s", snapshot.String())
@@ -37,7 +36,7 @@ func (p *pgEventStore) GetSnapshot(ctx context.Context, id string) (*Snapshot, e
 
 	var snapshot Snapshot
 	if err := p.db.QueryRow(ctx, getSnapshotQuery, id).Scan(&snapshot.ID, &snapshot.Type, &snapshot.State, &snapshot.Version); err != nil {
-		return nil, tracing.TraceWithErr(span, errors.Wrap(err, "db.QueryRow"))
+		return nil, errors.Wrap(err, "db.QueryRow")
 	}
 
 	p.log.Debugf("(GetSnapshot) snapshot: %s", snapshot.String())

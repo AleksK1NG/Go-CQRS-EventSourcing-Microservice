@@ -65,6 +65,7 @@ services:
 
   kafka:
     image: 'bitnami/kafka:3.2.0'
+    restart: always
     ports:
       - "9092:9092"
       - "9093:9093"
@@ -149,6 +150,7 @@ services:
 
   prometheus:
     image: prom/prometheus:latest
+    restart: always
     container_name: prometheus
     ports:
       - "9090:9090"

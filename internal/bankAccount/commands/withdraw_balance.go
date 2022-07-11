@@ -5,6 +5,7 @@ import (
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/internal/bankAccount/domain"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/es"
 	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/logger"
+	"github.com/AleksK1NG/go-cqrs-eventsourcing/pkg/tracing"
 	"github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/log"
 )
@@ -37,11 +38,11 @@ func (c *withdrawBalanceCommandHandler) Handle(ctx context.Context, cmd Withdraw
 	bankAccountAggregate := domain.NewBankAccountAggregate(cmd.AggregateID)
 	err := c.aggregateStore.Load(ctx, bankAccountAggregate)
 	if err != nil {
-		return err
+		return tracing.TraceWithErr(span, err)
 	}
 
 	if err := bankAccountAggregate.WithdrawBalance(ctx, cmd.Amount, cmd.PaymentID); err != nil {
-		return err
+		return tracing.TraceWithErr(span, err)
 	}
 
 	return c.aggregateStore.Save(ctx, bankAccountAggregate)

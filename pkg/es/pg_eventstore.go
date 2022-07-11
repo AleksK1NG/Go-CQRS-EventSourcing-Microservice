@@ -210,7 +210,7 @@ func (p *pgEventStore) loadEventsByVersion(ctx context.Context, aggregateID stri
 	rows, err := p.db.Query(ctx, getEventsByVersionQuery, aggregateID, versionFrom)
 	if err != nil {
 		p.log.Errorf("(loadEventsByVersion) db.Query err: %v", err)
-		return nil, tracing.TraceWithErr(span, errors.Wrap(err, "db.Query"))
+		return nil, errors.Wrap(err, "db.Query")
 	}
 	defer rows.Close()
 
@@ -229,7 +229,7 @@ func (p *pgEventStore) loadEventsByVersion(ctx context.Context, aggregateID stri
 			&event.Metadata,
 		); err != nil {
 			p.log.Errorf("(loadEventsByVersion) rows.Next err: %v", err)
-			return nil, tracing.TraceWithErr(span, errors.Wrap(err, "rows.Scan"))
+			return nil, errors.Wrap(err, "rows.Scan")
 		}
 
 		events = append(events, event)
@@ -251,7 +251,7 @@ func (p *pgEventStore) loadAggregateEventsByVersion(ctx context.Context, aggrega
 	rows, err := p.db.Query(ctx, getEventsByVersionQuery, aggregate.GetID(), aggregate.GetVersion())
 	if err != nil {
 		p.log.Errorf("(loadAggregateEventsByVersion) db.Query err: %v", err)
-		return tracing.TraceWithErr(span, errors.Wrap(err, "db.Query"))
+		return errors.Wrap(err, "db.Query")
 	}
 	defer rows.Close()
 
@@ -302,7 +302,7 @@ func (p *pgEventStore) loadEventsByVersionTx(ctx context.Context, tx pgx.Tx, agg
 	rows, err := tx.Query(ctx, getEventsByVersionQuery, aggregateID, versionFrom)
 	if err != nil {
 		p.log.Errorf("(loadEventsByVersionTx) tx.Query err: %v", err)
-		return nil, tracing.TraceWithErr(span, errors.Wrap(err, "tx.Query"))
+		return nil, errors.Wrap(err, "tx.Query")
 	}
 	defer rows.Close()
 
@@ -343,7 +343,7 @@ func (p *pgEventStore) handleConcurrency(ctx context.Context, tx pgx.Tx, events 
 	result, err := tx.Exec(ctx, handleConcurrentWriteQuery, events[0].GetAggregateID())
 	if err != nil {
 		p.log.Errorf("(handleConcurrency) tx.Exec err: %v", err)
-		return tracing.TraceWithErr(span, errors.Wrap(err, "tx.Exec"))
+		return errors.Wrap(err, "tx.Exec")
 	}
 
 	p.log.Debugf("(handleConcurrency) result: {%s}", result.String())
@@ -407,7 +407,7 @@ func (p *pgEventStore) saveSnapshotTx(ctx context.Context, tx pgx.Tx, aggregate 
 	snapshot, err := NewSnapshotFromAggregate(aggregate)
 	if err != nil {
 		p.log.Errorf("(saveSnapshotTx) NewSnapshotFromAggregate err: %v", err)
-		return tracing.TraceWithErr(span, err)
+		return err
 	}
 
 	_, err = tx.Exec(ctx, saveSnapshotQuery, snapshot.ID, snapshot.Type, snapshot.State, snapshot.Version)
