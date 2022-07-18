@@ -1,4 +1,4 @@
-### Golang CQRS EventSourcing PostgreSQL Kafka MongoDB Elasticsearch gRPC microservice example 👋
+Go EventSourcing and CQRS with PostgreSQL, Kafka, MongoDB and ElasticSearch 👋✨💫
 
 #### 👨‍💻 Full list what has been used:
 [PostgeSQL](https://github.com/jackc/pgx) as event store<br/>
